@@ -417,6 +417,11 @@ async function startServer() {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
 
+  // Google Search Console Verification File Route
+  app.get("/googleb38eccf865b724d7.html", (req: Request, res: Response) => {
+    res.type("text/html").send("google-site-verification: googleb38eccf865b724d7.html");
+  });
+
   // Voice Assistant Audit - Step 3: AI response generation
   app.post("/api/audit/voice-ai", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
