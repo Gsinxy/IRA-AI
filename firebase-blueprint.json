@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile in the application",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique user ID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's name"
+        },
+        "school": {
+          "type": "string",
+          "description": "User's school/institution"
+        },
+        "major": {
+          "type": "string",
+          "description": "User's academic major"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp"
+        },
+        "serverSecret": {
+          "type": "string",
+          "description": "Internal server-authoritative security bypass token"
+        }
+      },
+      "required": ["id", "email", "name", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat Room",
+      "description": "A conversation study room",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique chat room identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who owns the chat"
+        },
+        "title": {
+          "type": "string",
+          "description": "Chat room title or study topic"
+        },
+        "model": {
+          "type": "string",
+          "description": "AI model used in the chat"
+        },
+        "systemPrompt": {
+          "type": "string",
+          "description": "System instructions configured for the AI agent"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Chat creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        },
+        "lastMessageText": {
+          "type": "string",
+          "description": "Brief text preview of the last message"
+        },
+        "messageCount": {
+          "type": "integer",
+          "description": "Total number of messages in the chat"
+        },
+        "serverSecret": {
+          "type": "string",
+          "description": "Internal server-authoritative security bypass token"
+        }
+      },
+      "required": ["id", "userId", "title", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "An individual message within a conversation",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique message identifier"
+        },
+        "chatId": {
+          "type": "string",
+          "description": "ID of parent chat room"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "model", "assistant", "system"],
+          "description": "The sender of the message"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the message"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Context flow or mode of discussion"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when message was sent"
+        },
+        "serverSecret": {
+          "type": "string",
+          "description": "Internal server-authoritative security bypass token"
+        }
+      },
+      "required": ["id", "chatId", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Primary user profiles"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Study chats rooms"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Conversation progress logs"
+    }
+  }
+}

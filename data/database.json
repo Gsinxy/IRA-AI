@@ -1,0 +1,110 @@
+{
+  "users": [
+    {
+      "id": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "email": "naiknirmal654@gmail.com",
+      "name": "Naik Nirmal",
+      "passwordHash": "gaurav",
+      "createdAt": "2026-06-22T16:36:22.783Z"
+    }
+  ],
+  "chats": [
+    {
+      "id": "chat_izzwodbck",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "title": "New Concept Explanation",
+      "createdAt": "2026-06-23T16:43:38.117Z"
+    },
+    {
+      "id": "chat_7ooeidhzo",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "title": "New Concept Explanation",
+      "createdAt": "2026-06-23T16:34:35.134Z"
+    }
+  ],
+  "messages": [],
+  "sessions": {
+    "x0pwcrnlta70q2xm3a2gf": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    },
+    "8wtgz9btmuexp01fozx8ck": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    },
+    "pd4x1qrhg7nvs38lcvtqk": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    },
+    "9fg7x3mpheqa23nrm1t4mr": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    },
+    "az5h7vvo692u6727y57xw": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    }
+  },
+  "apiUsage": {
+    "GET /api/auth/me": 19,
+    "POST /api/auth/login": 9,
+    "GET /api/chats": 16,
+    "GET /api/founder/stats": 20,
+    "GET /api/chats/chat_izzwodbck/messages": 5,
+    "GET /api/health": 2,
+    "POST /api/chats": 2,
+    "POST /api/chats/chat_196yh678j/messages": 1,
+    "DELETE /api/chats/chat_196yh678j": 1,
+    "POST /api/chats/chat_jifbgskho/messages": 1,
+    "DELETE /api/chats/chat_jifbgskho": 1
+  },
+  "openRouterRequests": {
+    "attempts": 0,
+    "success": 2,
+    "failed": 0,
+    "fallbackGemini": 0
+  },
+  "dailyActiveUsers": {
+    "2026-06-22": [
+      "vkOIzuPA20cB3LIguaFTfb4BD243"
+    ],
+    "2026-06-24": [
+      "vkOIzuPA20cB3LIguaFTfb4BD243"
+    ]
+  },
+  "aiRequestLogs": [
+    {
+      "id": "log_ekza77128",
+      "timestamp": "2026-06-24T14:45:25.952Z",
+      "chatId": "chat_196yh678j",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "userEmail": "naiknirmal654@gmail.com",
+      "promptSnippet": "Explain Newton's First Law in one sentence.",
+      "attempts": [
+        {
+          "model": "Claude (anthropic/claude-3-haiku)",
+          "success": true
+        }
+      ],
+      "finalModelUsed": "Claude (anthropic/claude-3-haiku)",
+      "responseSnippet": "Newton's First Law, also known as the law of inertia, states that an object at rest will remain at rest, and an object in motion will continue moving ",
+      "status": "Success"
+    },
+    {
+      "id": "log_rs5dptuf9",
+      "timestamp": "2026-06-24T14:46:59.354Z",
+      "chatId": "chat_jifbgskho",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "userEmail": "naiknirmal654@gmail.com",
+      "promptSnippet": "Explain Newton's First Law in one sentence.",
+      "attempts": [
+        {
+          "model": "Claude (anthropic/claude-3-haiku)",
+          "success": true
+        }
+      ],
+      "finalModelUsed": "Claude (anthropic/claude-3-haiku)",
+      "responseSnippet": "Newton's First Law, also known as the law of inertia, states that an object at rest will remain at rest, and an object in motion will remain in motion",
+      "status": "Success"
+    }
+  ]
+}

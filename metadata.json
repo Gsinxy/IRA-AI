@@ -1,0 +1,6 @@
+{
+  "name": "IRA AI",
+  "description": "A simple AI-powered chatbot designed for students with user profiles, authentication, chat history, and academic-themed interface.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

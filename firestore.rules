@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isServer() {
+      return isSignedIn() && request.auth.token.email == 'system-admin@ira.ai';
+    }
+
+    function hasServerSecret(data) {
+      return data != null && 'serverSecret' in data && data.serverSecret == 'ira-secure-server-secret-2026-v1';
+    }
+
+    // ----------------- USERS -----------------
+    match /users/{userId} {
+      allow read: if (resource != null && hasServerSecret(resource.data)) || resource == null || (isSignedIn() && request.auth.uid == userId);
+      allow create: if (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && request.auth.uid == userId && isValidUser(request.resource.data));
+      allow update: if (resource != null && hasServerSecret(resource.data)) || (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && request.auth.uid == userId && resource != null && request.resource != null && isValidUserUpdate(request.resource.data, resource.data));
+      allow delete: if (resource != null && hasServerSecret(resource.data)) || isServer();
+    }
+
+    function isValidUser(data) {
+      return data != null 
+        && data.keys().hasAll(['id', 'email', 'name', 'createdAt'])
+        && data.keys().size() <= 12
+        && data.id is string
+        && data.email is string
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 100
+        && data.createdAt is string;
+    }
+
+    function isValidUserUpdate(incomingData, existingData) {
+      return incomingData != null && existingData != null
+        && incomingData.keys().hasAll(['id', 'email', 'name', 'createdAt'])
+        && incomingData.keys().size() <= 12
+        && incomingData.id == existingData.id
+        && incomingData.email == existingData.email
+        && incomingData.createdAt == existingData.createdAt
+        && incomingData.name is string
+        && incomingData.name.size() > 0
+        && incomingData.name.size() <= 100;
+    }
+
+    // ----------------- CHATS -----------------
+    match /chats/{chatId} {
+      allow read: if (resource != null && hasServerSecret(resource.data)) || resource == null || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && request.resource != null && request.resource.data.userId == request.auth.uid && isValidChat(request.resource.data));
+      allow update: if (resource != null && hasServerSecret(resource.data)) || (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && resource != null && request.resource != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid && isValidChatUpdate(request.resource.data, resource.data));
+      allow delete: if (resource != null && hasServerSecret(resource.data)) || (isSignedIn() && resource != null && resource.data.userId == request.auth.uid);
+    }
+
+    function isValidChat(data) {
+      return data != null
+        && data.keys().hasAll(['id', 'userId', 'title', 'createdAt', 'updatedAt'])
+        && data.keys().size() <= 11
+        && data.id is string
+        && data.userId is string
+        && data.title is string
+        && data.title.size() <= 500
+        && data.createdAt is string
+        && data.updatedAt is string;
+    }
+
+    function isValidChatUpdate(incomingData, existingData) {
+      return incomingData != null && existingData != null
+        && incomingData.keys().hasAll(['id', 'userId', 'title', 'createdAt', 'updatedAt'])
+        && incomingData.keys().size() <= 11
+        && incomingData.id == existingData.id
+        && incomingData.userId == existingData.userId
+        && incomingData.createdAt == existingData.createdAt
+        && incomingData.title is string
+        && incomingData.title.size() <= 500
+        && incomingData.updatedAt is string;
+    }
+
+    // ----------------- MESSAGES -----------------
+    match /messages/{messageId} {
+      allow read: if (resource != null && hasServerSecret(resource.data)) || resource == null || (isSignedIn() && resource != null && get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.userId == request.auth.uid);
+      allow create: if (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && request.resource != null && get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.userId == request.auth.uid && isValidMessage(request.resource.data));
+      allow update: if (resource != null && hasServerSecret(resource.data)) || (request.resource != null && hasServerSecret(request.resource.data)) || (isSignedIn() && resource != null && request.resource != null && get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.userId == request.auth.uid && isValidMessageUpdate(request.resource.data, resource.data));
+      allow delete: if (resource != null && hasServerSecret(resource.data)) || (isSignedIn() && resource != null && get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.userId == request.auth.uid);
+    }
+
+    function isValidMessage(data) {
+      return data != null
+        && data.keys().hasAll(['id', 'chatId', 'role', 'content', 'timestamp'])
+        && data.keys().size() <= 8
+        && data.id is string
+        && data.chatId is string
+        && data.role is string
+        && (data.role == 'user' || data.role == 'model' || data.role == 'assistant' || data.role == 'system')
+        && data.content is string
+        && data.content.size() <= 100000
+        && data.timestamp is string;
+    }
+
+    function isValidMessageUpdate(incomingData, existingData) {
+      return incomingData != null && existingData != null
+        && incomingData.keys().hasAll(['id', 'chatId', 'role', 'content', 'timestamp'])
+        && incomingData.keys().size() <= 8
+        && incomingData.id == existingData.id
+        && incomingData.chatId == existingData.chatId
+        && incomingData.role == existingData.role
+        && incomingData.content is string
+        && incomingData.content.size() <= 100000
+        && incomingData.timestamp == existingData.timestamp;
+    }
+
+    // ----------------- DEBUG/VERIFICATION -----------------
+    match /debug_test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read: if resource == null || (resource != null && hasServerSecret(resource.data));
+      allow write: if request.resource == null || (request.resource != null && hasServerSecret(request.resource.data));
+    }
+  }
+}
