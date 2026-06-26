@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /workspace/
+
+Sitemap: https://ira-ai-peach.vercel.app/sitemap.xml
