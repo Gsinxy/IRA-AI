@@ -36,8 +36,7 @@ import dotenv from "dotenv";
 import { generateImageWithProvider } from "./src/services/imageGenerator";
 import multer from "multer";
 import mammoth from "mammoth";
-// @ts-ignore
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import * as xlsx from "xlsx";
 import officeParser from "officeparser";
 import fs from "fs";
@@ -78,7 +77,8 @@ async function extractTextFromFile(filePath: string, mimeType: string, originalN
   try {
     if (ext === ".pdf" || mimeType === "application/pdf") {
       const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdfParse(dataBuffer);
+      const parser = new PDFParse({ data: dataBuffer });
+      const data = await parser.getText();
       return data.text || "Unable to extract readable text from this file.";
     }
     
