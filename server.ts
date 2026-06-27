@@ -50,6 +50,248 @@ const ai = new GoogleGenAI({
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "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";
 
 /**
+ * Helper to detect if a query requires live/current information.
+ */
+function requiresLiveSearch(query: string): boolean {
+  if (!query) return false;
+  const lower = query.toLowerCase();
+
+  // If query asks for college-specific RAG/knowledge-base keywords, do not trigger Exa search
+  const collegeKeywords = [
+    "syllabus", "notices", "faculty", "timetable", "placement", "internships", "college-specific",
+    "coursework", "curriculum", "autonomous college", "sundargarh"
+  ];
+  if (collegeKeywords.some(keyword => lower.includes(keyword))) {
+    return false;
+  }
+
+  // Keywords indicating live/current information need
+  const liveKeywords = [
+    "latest news", "current gdp", "today's weather", "sports scores", "stock prices", 
+    "government schemes", "recent ai updates", "current statistics",
+    "current", "latest", "today", "recent", "live", "updated"
+  ];
+  return liveKeywords.some(keyword => lower.includes(keyword));
+}
+
+/**
+ * Helper to call a model via OpenRouter API with system instructions and user history.
+ */
+async function callOpenRouterModel(
+  model: string,
+  systemInstruction: string,
+  history: { role: string; content: string }[],
+  timeoutMs: number = 8000
+): Promise<string> {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OpenRouter API key is missing");
+  }
+
+  const messages = [
+    { role: "system", content: systemInstruction },
+    ...history.map(msg => ({
+      role: msg.role === "model" ? "assistant" : "user",
+      content: msg.content
+    }))
+  ];
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://ais-dev-ruytss3zp7ccpw7hx2lovn.run.app",
+        "X-Title": "IRA AI Tutoring Desk"
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 3000
+      })
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter HTTP ${response.status}: ${errText}`);
+    }
+
+    const json: any = await response.json();
+    const text = json.choices?.[0]?.message?.content;
+    if (!text || text.trim().length === 0) {
+      throw new Error("OpenRouter returned empty content");
+    }
+    return text;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
+/**
+ * Executes a text prompt against Gemini with a native-to-OpenRouter fallback cascade.
+ * This guarantees that if the native GEMINI_API_KEY is invalid or missing,
+ * it will automatically fall back to OpenRouter's google/gemini-2.5-flash model.
+ */
+async function callGeminiDirect(
+  prompt: string,
+  temperature: number = 0.5,
+  systemInstruction?: string
+): Promise<string> {
+  const fallbackModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  let lastError: any = null;
+
+  // 1. Try native Google SDK first with cascading models
+  for (const modelName of fallbackModels) {
+    try {
+      console.log(`[IRA AI] Querying native Gemini via Google SDK [Model: ${modelName}]...`);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          temperature,
+          ...(systemInstruction ? { systemInstruction } : {})
+        }
+      });
+      if (response && response.text) {
+        console.log(`[IRA AI] Native Gemini call succeeded [Model: ${modelName}]`);
+        return response.text.trim();
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      console.warn(`[IRA AI] Native Gemini failed for ${modelName}:`, errMsg);
+      lastError = err;
+    }
+  }
+
+  // 2. If all native SDK attempts failed (or if API key is invalid/missing), try OpenRouter as secondary fallback
+  console.log(`[IRA AI] All native Gemini models failed. Falling back to OpenRouter google/gemini-2.5-flash...`);
+  try {
+    const text = await callOpenRouterModel("google/gemini-2.5-flash", systemInstruction || "", [{ role: "user", content: prompt }]);
+    if (text && text.trim().length > 0) {
+      console.log(`[IRA AI] OpenRouter Gemini call succeeded!`);
+      return text.trim();
+    }
+  } catch (orErr: any) {
+    console.error(`[IRA AI] OpenRouter Gemini call also failed:`, orErr?.message || String(orErr));
+    lastError = orErr;
+  }
+
+  throw lastError || new Error("All Gemini cascade layers failed.");
+}
+
+/**
+ * Classifies the student query into an intelligent task category and determines the best model.
+ */
+function classifyQueryAndDeterminePreferredModel(
+  query: string,
+  hasVisProtocol: boolean,
+  isLiveQuery: boolean
+): { category: string; preferredModel: string; reason: string } {
+  const lower = query.toLowerCase();
+
+  // 1. Visualization generation
+  if (
+    hasVisProtocol || 
+    lower.includes("draw") || lower.includes("show") || lower.includes("generate") ||
+    lower.includes("visualize") || lower.includes("plot") || lower.includes("graph") ||
+    lower.includes("chart") || lower.includes("diagram") || lower.includes("comparison table") ||
+    lower.includes("mermaid") || lower.includes("flowchart") || lower.includes("mindmap") ||
+    lower.includes("mind map")
+  ) {
+    return {
+      category: "Visualization generation",
+      preferredModel: "Gemini 2.5 Flash",
+      reason: "Visualization Request"
+    };
+  }
+
+  // 2. Live web research
+  if (
+    isLiveQuery ||
+    lower.includes("latest") || lower.includes("current") || lower.includes("today") ||
+    lower.includes("recent") || lower.includes("live") || lower.includes("updated") ||
+    lower.includes("news") || lower.includes("search") || lower.includes("exa")
+  ) {
+    return {
+      category: "Live web research",
+      preferredModel: "Gemini 2.5 Flash",
+      reason: "Live Search (Exa grounded)"
+    };
+  }
+
+  // 3. College knowledge
+  const collegeKeywords = [
+    "syllabus", "notices", "faculty", "timetable", "placement", "internships", "college-specific",
+    "coursework", "curriculum", "autonomous college", "sundargarh", "university", "admission",
+    "gpa", "major", "campus", "tuition", "degree", "college"
+  ];
+  if (collegeKeywords.some(kw => lower.includes(kw))) {
+    return {
+      category: "College knowledge",
+      preferredModel: "Gemini 2.5 Flash",
+      reason: "College questions"
+    };
+  }
+
+  // 4. Programming/coding
+  const programmingKeywords = [
+    "code", "program", "function", "class", "debug", "compile", "script", "syntax", "error",
+    "javascript", "typescript", "python", "java", "c++", "c#", "ruby", "rust", "html", "css",
+    "sql", "database", "query", "json", "api", "rest api", "endpoint", "array", "algorithm"
+  ];
+  if (programmingKeywords.some(kw => lower.includes(kw))) {
+    return {
+      category: "Programming/coding",
+      preferredModel: "DeepSeek Chat",
+      reason: "Programming"
+    };
+  }
+
+  // 5. Creative writing
+  const creativeKeywords = [
+    "poem", "poetry", "story", "novel", "lyrics", "song", "essay", "creative", "fiction",
+    "write an essay", "write a story", "letter", "draft", "brainstorm", "metaphor", "analogy"
+  ];
+  if (creativeKeywords.some(kw => lower.includes(kw))) {
+    return {
+      category: "Creative writing",
+      preferredModel: "Claude 3 Haiku",
+      reason: "Creative Writing"
+    };
+  }
+
+  // 6. General conversation
+  const greetingKeywords = [
+    "hello", "hi", "hey", "how are you", "what's up", "who are you", "thanks", "thank you",
+    "bye", "good morning", "good afternoon", "good evening"
+  ];
+  const isCasualGreeting = greetingKeywords.some(kw => {
+    return lower.startsWith(kw) || lower === kw || (lower.length < 25 && lower.includes(kw));
+  });
+  if (isCasualGreeting || lower.length < 15) {
+    return {
+      category: "General conversation",
+      preferredModel: "Claude 3 Haiku",
+      reason: "Casual Conversation"
+    };
+  }
+
+  // 7. Academic tutoring (Default)
+  return {
+    category: "Academic tutoring",
+    preferredModel: "Gemini 2.5 Flash",
+    reason: "Academic tutoring"
+  };
+}
+
+/**
  * Dynamic local Gemini API call with cascading model failover checks
  */
 async function callGeminiWithCascadingFallback(
@@ -91,40 +333,22 @@ async function callGeminiWithCascadingFallback(
  * Dynamic title generation call with cascading model failover checks
  */
 async function generateTitleWithCascadingFallback(promptText: string): Promise<string> {
-  const fallbackModels = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
-  let lastError: any = null;
-
-  for (const modelName of fallbackModels) {
-    try {
-      console.log(`[IRA AI] Generating short title via local Gemini [Model: ${modelName}]...`);
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: [{ role: 'user', parts: [{ text: promptText }] }],
-        config: {
-          systemInstruction: "You are a concise summarizer returning ONLY 2-4 words summarizing the topic name. No markdown, no quotes."
-        }
-      });
-      if (response && response.text) {
-        return response.text.trim();
-      }
-    } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      if (errMsg.includes("API key not valid") || errMsg.includes("API_KEY_INVALID") || errMsg.includes("INVALID_ARGUMENT")) {
-        console.warn(`[IRA AI] Model title generation failed [Model: ${modelName}]. Reason: Invalid/inactive Gemini API key.`);
-      } else {
-        console.warn(`[IRA AI] Model title generation failed [Model: ${modelName}]. Reason:`, errMsg);
-      }
-      lastError = err;
-    }
+  try {
+    return await callGeminiDirect(
+      promptText,
+      0.5,
+      "You are a concise summarizer returning ONLY 2-4 words summarizing the topic name. No markdown, no quotes."
+    );
+  } catch (err) {
+    console.warn(`[IRA AI] Title generation cascade failed:`, err);
+    throw err;
   }
-
-  throw lastError || new Error("All local fallback Gemini models were exhausted during title generation.");
 }
 
 /**
- * Generate completion text using cascading fallback order: Claude -> Gemini -> DeepSeek.
- * Automatically falls back to localized Google Gemini API client if OpenRouter is inaccessible,
- * and records failures and response sources in logs. Never returns a blank response.
+ * Generate completion text using task-based intelligent router: Gemini 2.5 Flash / DeepSeek Chat / Claude 3 Haiku.
+ * Standard fallback priority order is: Gemini 2.5 Flash -> DeepSeek Chat -> Claude 3 Haiku
+ * Records failures, decisions, and response sources in logs. Never returns a blank response.
  */
 async function generateAIResponse(
   history: { role: string; content: string }[],
@@ -138,162 +362,111 @@ async function generateAIResponse(
 
   // Snippet of user's latest query
   const lastUserMsg = [...history].reverse().find(msg => msg.role === 'user');
-  const promptSnippet = lastUserMsg ? lastUserMsg.content.substring(0, 150) : "N/A";
+  const query = lastUserMsg ? lastUserMsg.content : "";
+  const promptSnippet = query ? query.substring(0, 150) : "N/A";
 
-  // LOGS FOR THE VISUALIZATION PROTOCOL
-  const hasVisProtocol = instruction.includes("AI-POWERED VISUALIZATION PROTOCOL");
-  console.log(`[AI Request Log] ==========================================`);
-  console.log(`[AI Request Log] User: ${userEmail} | ChatID: ${userChatId}`);
-  console.log(`[AI Request Log] Query snippet: "${promptSnippet}"`);
-  console.log(`[AI Request Log] System instruction length: ${instruction.length} chars`);
-  console.log(`[AI Request Log] Visualization Protocol Present: ${hasVisProtocol}`);
-  console.log(`[AI Request Log] ==========================================`);
+  // Check instruction indicators
+  const hasVisProtocol = instruction.includes("AI-POWERED VISUALIZATION PROTOCOL") || instruction.includes("CRITICAL DIRECTIVE: INTEGRATIVE VISUAL EXPLANATION");
+  const isLiveQuery = query ? requiresLiveSearch(query) : false;
+
+  // 1. Classification & Routing Decision
+  const { category, preferredModel, reason } = classifyQueryAndDeterminePreferredModel(query, hasVisProtocol, isLiveQuery);
+
+  console.log(`[IRA AI Router] ==========================================`);
+  console.log(`[IRA AI Router] User: ${userEmail} | ChatID: ${userChatId}`);
+  console.log(`[IRA AI Router] Query: "${promptSnippet}"`);
+  console.log(`[IRA AI Router] Query Category: ${category}`);
+  console.log(`[IRA AI Router] Preferred Model: ${preferredModel}`);
+  console.log(`[IRA AI Router] Route Reason: ${reason}`);
+  console.log(`[IRA AI Router] ==========================================`);
+
+  // Build the fallback sequence order.
+  // The global specified order is: Gemini 2.5 Flash -> DeepSeek Chat -> Claude 3 Haiku
+  const fallbackSequence = ["Gemini 2.5 Flash", "DeepSeek Chat", "Claude 3 Haiku"];
+  
+  // Arrange models so the preferred model is tried first, followed by the rest in fallback order
+  const modelsToTry = [preferredModel, ...fallbackSequence.filter(m => m !== preferredModel)];
 
   const attempts: { model: string; success: boolean; error?: string }[] = [];
   let responseText = "";
   let finalModelUsed = "";
   let status: 'Success' | 'Failed' = 'Failed';
 
-  // 1. Try Primary Model: Claude via OpenRouter
-  try {
-    console.log("[AI Fallback] Attempt 1: Querying Claude (anthropic/claude-3-haiku) via OpenRouter...");
-    if (!OPENROUTER_API_KEY) {
-      throw new Error("OpenRouter API key is missing");
-    }
-    const messages = [
-      { role: "system", content: instruction },
-      ...history.map(msg => ({
-        role: msg.role === "model" ? "assistant" : "user",
-        content: msg.content
-      }))
-    ];
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const currentModel = modelsToTry[i];
+    const fallbackTriggered = (i > 0);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+    // Detailed logs format exactly as requested:
+    console.log(`Selected Model: ${currentModel}`);
+    console.log(`Route Reason: ${fallbackTriggered ? "Fallback from failed preferred model" : reason}`);
+    console.log(`Query Type: ${category}`);
+    console.log(`Fallback Triggered: ${fallbackTriggered ? "true" : "false"}`);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://ais-dev-ruytss3zp7ccpw7hx2lovn.run.app",
-        "X-Title": "IRA AI Tutoring Desk"
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-3-haiku",
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 3000
-      })
-    });
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const json: any = await response.json();
-      const text = json.choices?.[0]?.message?.content;
-      if (text && text.trim().length > 0) {
-        responseText = text;
-        finalModelUsed = "Claude (anthropic/claude-3-haiku)";
-        status = 'Success';
-        attempts.push({ model: "Claude (anthropic/claude-3-haiku)", success: true });
-        console.log("[AI Fallback SUCCESS] Claude (anthropic/claude-3-haiku) answered successfully.");
-      } else {
-        throw new Error("Claude returned an empty response text");
-      }
-    } else {
-      const errText = await response.text();
-      throw new Error(`OpenRouter Claude HTTP ${response.status}: ${errText}`);
-    }
-  } catch (err: any) {
-    const errMsg = err?.message || String(err);
-    console.warn("[AI Fallback FAILED] Claude failed. Reason:", errMsg);
-    attempts.push({ model: "Claude (anthropic/claude-3-haiku)", success: false, error: errMsg });
-  }
-
-  // 2. Try Backup Model: Gemini via Native SDK
-  if (status === 'Failed') {
     try {
-      console.log("[AI Fallback] Attempt 2: Querying Gemini (gemini-2.5-flash) via Native SDK...");
-      const geminiContents = history.map(msg => ({
-        role: msg.role === "model" ? "model" : "user",
-        parts: [{ text: msg.content }]
-      }));
+      if (currentModel === "Gemini 2.5 Flash") {
+        // Try Native SDK first
+        try {
+          console.log(`[IRA AI Router] Attempting Gemini 2.5 Flash via Native SDK...`);
+          const geminiContents = history.map(msg => ({
+            role: msg.role === "model" ? "model" : "user",
+            parts: [{ text: msg.content }]
+          }));
+          const text = await callGeminiWithCascadingFallback(geminiContents, instruction);
+          if (text && text.trim().length > 0) {
+            responseText = text;
+            finalModelUsed = "Gemini 2.5 Flash (Native SDK)";
+            status = 'Success';
+            attempts.push({ model: "Gemini 2.5 Flash (Native SDK)", success: true });
+            break;
+          } else {
+            throw new Error("Native Gemini SDK returned empty response");
+          }
+        } catch (nativeErr: any) {
+          const nativeMsg = nativeErr?.message || String(nativeErr);
+          console.warn(`[IRA AI Router] Native Gemini SDK failed: ${nativeMsg}. Trying OpenRouter Gemini...`);
+          attempts.push({ model: "Gemini 2.5 Flash (Native SDK)", success: false, error: nativeMsg });
 
-      // Call native SDK
-      const text = await callGeminiWithCascadingFallback(geminiContents, instruction);
-      if (text && text.trim().length > 0) {
-        responseText = text;
-        finalModelUsed = "Gemini (gemini-2.5-flash SDK)";
-        status = 'Success';
-        attempts.push({ model: "Gemini (Native SDK)", success: true });
-        console.log("[AI Fallback SUCCESS] Gemini (Native SDK) answered successfully.");
-      } else {
-        throw new Error("Gemini returned empty response");
-      }
-    } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      console.warn("[AI Fallback FAILED] Gemini failed. Reason:", errMsg);
-      attempts.push({ model: "Gemini (Native SDK)", success: false, error: errMsg });
-    }
-  }
-
-  // 3. Try Second Backup Model: DeepSeek via OpenRouter
-  if (status === 'Failed') {
-    try {
-      console.log("[AI Fallback] Attempt 3: Querying DeepSeek (deepseek/deepseek-chat) via OpenRouter...");
-      if (!OPENROUTER_API_KEY) {
-        throw new Error("OpenRouter API key is missing");
-      }
-      const messages = [
-        { role: "system", content: instruction },
-        ...history.map(msg => ({
-          role: msg.role === "model" ? "assistant" : "user",
-          content: msg.content
-        }))
-      ];
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
-
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://ais-dev-ruytss3zp7ccpw7hx2lovn.run.app",
-          "X-Title": "IRA AI Tutoring Desk"
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-chat",
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 3000
-        })
-      });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const json: any = await response.json();
-        const text = json.choices?.[0]?.message?.content;
+          // Try OpenRouter Gemini
+          const text = await callOpenRouterModel("google/gemini-2.5-flash", instruction, history);
+          if (text && text.trim().length > 0) {
+            responseText = text;
+            finalModelUsed = "Gemini 2.5 Flash (OpenRouter)";
+            status = 'Success';
+            attempts.push({ model: "Gemini 2.5 Flash (OpenRouter)", success: true });
+            break;
+          } else {
+            throw new Error("OpenRouter Gemini returned empty response");
+          }
+        }
+      } else if (currentModel === "DeepSeek Chat") {
+        console.log(`[IRA AI Router] Attempting DeepSeek Chat via OpenRouter...`);
+        const text = await callOpenRouterModel("deepseek/deepseek-chat", instruction, history);
         if (text && text.trim().length > 0) {
           responseText = text;
-          finalModelUsed = "DeepSeek (deepseek/deepseek-chat)";
+          finalModelUsed = "DeepSeek Chat";
           status = 'Success';
-          attempts.push({ model: "DeepSeek (deepseek/deepseek-chat)", success: true });
-          console.log("[AI Fallback SUCCESS] DeepSeek (deepseek/deepseek-chat) answered successfully.");
+          attempts.push({ model: "DeepSeek Chat", success: true });
+          break;
         } else {
-          throw new Error("DeepSeek returned empty response text");
+          throw new Error("DeepSeek Chat returned empty response");
         }
-      } else {
-        const errText = await response.text();
-        throw new Error(`OpenRouter DeepSeek HTTP ${response.status}: ${errText}`);
+      } else if (currentModel === "Claude 3 Haiku") {
+        console.log(`[IRA AI Router] Attempting Claude 3 Haiku via OpenRouter...`);
+        const text = await callOpenRouterModel("anthropic/claude-3-haiku", instruction, history);
+        if (text && text.trim().length > 0) {
+          responseText = text;
+          finalModelUsed = "Claude 3 Haiku";
+          status = 'Success';
+          attempts.push({ model: "Claude 3 Haiku", success: true });
+          break;
+        } else {
+          throw new Error("Claude 3 Haiku returned empty response");
+        }
       }
     } catch (err: any) {
       const errMsg = err?.message || String(err);
-      console.warn("[AI Fallback FAILED] DeepSeek failed. Reason:", errMsg);
-      attempts.push({ model: "DeepSeek (deepseek/deepseek-chat)", success: false, error: errMsg });
+      console.warn(`[IRA AI Router] Model ${currentModel} failed: ${errMsg}`);
+      attempts.push({ model: currentModel, success: false, error: errMsg });
     }
   }
 
@@ -938,30 +1111,7 @@ async function startServer() {
     res.json({ messages });
   });
 
-  /**
-   * Helper to detect if a query requires live/current information.
-   */
-  function requiresLiveSearch(query: string): boolean {
-    if (!query) return false;
-    const lower = query.toLowerCase();
 
-    // If query asks for college-specific RAG/knowledge-base keywords, do not trigger Exa search
-    const collegeKeywords = [
-      "syllabus", "notices", "faculty", "timetable", "placement", "internships", "college-specific",
-      "coursework", "curriculum", "autonomous college", "sundargarh"
-    ];
-    if (collegeKeywords.some(keyword => lower.includes(keyword))) {
-      return false;
-    }
-
-    // Keywords indicating live/current information need
-    const liveKeywords = [
-      "latest news", "current gdp", "today's weather", "sports scores", "stock prices", 
-      "government schemes", "recent ai updates", "current statistics",
-      "current", "latest", "today", "recent", "live", "updated"
-    ];
-    return liveKeywords.some(keyword => lower.includes(keyword));
-  }
 
   /**
    * Search the web using the Exa Search API.
@@ -1087,16 +1237,8 @@ You MUST respond with a valid raw JSON object matching this schema, without any 
   "type": "chart" | "mermaid" | null
 }`;
 
-      console.log(`[Vis Detection] Querying Gemini model gemini-3.5-flash for classification...`);
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [{ role: 'user', parts: [{ text: detectionPrompt }] }],
-        config: {
-          temperature: 0.0,
-        }
-      });
-
-      const responseText = response.text?.trim() || "";
+      console.log(`[Vis Detection] Querying Gemini model via callGeminiDirect for classification...`);
+      const responseText = await callGeminiDirect(detectionPrompt, 0.0);
       console.log(`[Vis Detection] Raw model response: "${responseText}"`);
       
       let cleanText = responseText;
@@ -1111,7 +1253,7 @@ You MUST respond with a valid raw JSON object matching this schema, without any 
         type: result.type || null
       };
     } catch (err: any) {
-      console.error(`[Vis Detection] LLM classification error:`, err.message);
+      console.error(`[Vis Detection] LLM classification error:`, err.message || String(err));
       // fallback
       if (hasExplicitRequest) {
         let type: 'chart' | 'mermaid' = 'mermaid';
@@ -1197,21 +1339,13 @@ Guidelines:
 
     let responseText = "";
     try {
-      // Always query Gemini 3.5 Flash for rapid, robust, zero-cost visual schema outputs
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.1,
-        }
-      });
-
-      responseText = response.text?.trim() || "";
+      console.log(`[Vis Generation] Querying Gemini via callGeminiDirect...`);
+      responseText = await callGeminiDirect(prompt, 0.1);
       console.log(`[Vis Generation] RAW RESPONSE RECEIVED:\n${responseText}`);
       console.log(`[Vis Generation] ==========================================`);
 
     } catch (err: any) {
-      console.error(`[Vis Generation] Failed to generate visual via Gemini API:`, err.message);
+      console.error(`[Vis Generation] Failed to generate visual via Gemini API cascade:`, err.message || String(err));
       throw err;
     }
 
