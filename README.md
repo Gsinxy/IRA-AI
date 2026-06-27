@@ -80,7 +80,7 @@ Configure these keys inside your hosting dashboard or your local `.env` file (co
 | `GEMINI_API_KEY` | **Yes** | Powers the core educational cascade and the Live Voice WebSocket stream. |
 | `OPENROUTER_API_KEY` | Optional | Serves as high-speed fallback provider (DeepSeek, Claude, Llama). |
 | `ELEVENLABS_API_KEY` | Optional | Powers custom text-to-speech voice generation inside diagnostic panels. |
-| `TAVILY_API_KEY` | Optional | Powers live search grounding for research academic modes. |
+| `EXA_API_KEY` | Optional | Powers live search grounding with Exa Search API for research and live queries. |
 | `APP_URL` | Optional | Auto-detected for WebSockets; override this with your live URL in production. |
 
 ---

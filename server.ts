@@ -930,12 +930,37 @@ async function startServer() {
   });
 
   /**
-   * Search the web using the Tavily Search API.
+   * Helper to detect if a query requires live/current information.
+   */
+  function requiresLiveSearch(query: string): boolean {
+    if (!query) return false;
+    const lower = query.toLowerCase();
+
+    // If query asks for college-specific RAG/knowledge-base keywords, do not trigger Exa search
+    const collegeKeywords = [
+      "syllabus", "notices", "faculty", "timetable", "placement", "internships", "college-specific",
+      "coursework", "curriculum", "autonomous college", "sundargarh"
+    ];
+    if (collegeKeywords.some(keyword => lower.includes(keyword))) {
+      return false;
+    }
+
+    // Keywords indicating live/current information need
+    const liveKeywords = [
+      "latest news", "current gdp", "today's weather", "sports scores", "stock prices", 
+      "government schemes", "recent ai updates", "current statistics",
+      "current", "latest", "today", "recent", "live", "updated"
+    ];
+    return liveKeywords.some(keyword => lower.includes(keyword));
+  }
+
+  /**
+   * Search the web using the Exa Search API.
    */
   async function searchWeb(query: string): Promise<{ title: string; url: string; content: string }[]> {
-    const apiKey = process.env.TAVILY_API_KEY;
+    const apiKey = process.env.EXA_API_KEY;
     if (!apiKey) {
-      throw new Error("TAVILY_API_KEY is not defined in the environment");
+      throw new Error("EXA_API_KEY is not defined in the environment");
     }
 
     // Clean the query slightly if it starts with [Academic Mode: ...] or [Attached Resource: ...]
@@ -947,22 +972,27 @@ async function startServer() {
       cleanedQuery = cleanedQuery.replace(/^\[Attached Resource:\s*[^\]]+\]\s*/i, "");
     }
 
-    const response = await fetch("https://api.tavily.com/search", {
+    const response = await fetch("https://api.exa.ai/search", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-api-key": apiKey
       },
       body: JSON.stringify({
-        api_key: apiKey,
         query: cleanedQuery,
-        search_depth: "basic",
-        max_results: 5
+        numResults: 5,
+        useAutoprompt: true,
+        contents: {
+          text: {
+            maxCharacters: 1000
+          }
+        }
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Tavily search API request failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Exa search API request failed with status ${response.status}: ${errorText}`);
     }
 
     const data: any = await response.json();
@@ -970,7 +1000,7 @@ async function startServer() {
       return data.results.map((r: any) => ({
         title: r.title || "No Title",
         url: r.url || "",
-        content: r.content || ""
+        content: r.text || r.summary || ""
       }));
     }
 
@@ -1040,24 +1070,27 @@ async function startServer() {
         history = DB.getMessagesByChat(chatId);
       }
 
-      // If researchMode is enabled, do Tavily web search
+      // Determine search query
+      let searchQuery = text;
+      if (regenerate) {
+        const lastUserMsg = [...history].reverse().find(msg => msg.role === 'user');
+        searchQuery = lastUserMsg ? lastUserMsg.content : "";
+      }
+
+      const isLiveQuery = searchQuery ? requiresLiveSearch(searchQuery) : false;
+
+      // If researchMode is enabled OR it is a live query, search the web with Exa
       let sources: { title: string; url: string; content: string }[] | undefined = undefined;
       let researchWarning: string | undefined = undefined;
 
-      if (researchMode) {
-        let searchQuery = text;
-        if (regenerate) {
-          const lastUserMsg = [...history].reverse().find(msg => msg.role === 'user');
-          searchQuery = lastUserMsg ? lastUserMsg.content : "";
-        }
-
+      if (researchMode || isLiveQuery) {
         if (searchQuery) {
           try {
-            console.log(`[Research Mode] Querying Tavily Search API for: "${searchQuery}"`);
+            console.log(`[Exa Search] Querying Exa Search API for query: "${searchQuery}" (isLiveQuery: ${isLiveQuery}, researchMode: ${researchMode})`);
             sources = await searchWeb(searchQuery);
-            console.log(`[Research Mode] Tavily search completed successfully. Found ${sources.length} sources.`);
+            console.log(`[Exa Search] Completed successfully. Found ${sources.length} sources.`);
           } catch (searchErr: any) {
-            console.error("[Research Mode] Tavily search FAILED:", searchErr.message || searchErr);
+            console.error("[Exa Search] API call FAILED:", searchErr.message || searchErr);
             researchWarning = "Live web search unavailable.";
           }
         }
@@ -1074,7 +1107,24 @@ async function startServer() {
 
       if (sources && sources.length > 0) {
         const sourcesContext = sources.map((src, i) => `[Source ${i+1}] Title: ${src.title}\nURL: ${src.url}\nContent: ${src.content}`).join("\n\n");
-        systemInstruction += `\n\n[Research Mode Enabled]\nYou have access to live web search results below to answer the student's question. Please read the search results carefully and provide an accurate, high-quality, cited answer. Cite the search results using inline citation tags like [1], [2], etc., corresponding to the [Source N] indicators in the sources context.\n\nRetrieved Web Search Sources:\n${sourcesContext}\n\nStrict Guidelines:\n- Only use the search results if they are relevant to the user's question.\n- Cite your sources in the text using [1], [2], etc.`;
+        if (isLiveQuery) {
+          systemInstruction += `\n\n[Live Search Mode Enabled]
+The student asked a question requiring live/current information. You MUST answer this question based ONLY on the retrieved Exa Search API results below. Do not use outdated pre-trained general knowledge for this answer.
+Provide a natural, comprehensive, and up-to-date answer. Cite your sources inline using citation numbers like [1], [2], etc., corresponding to the sources context. Display citations with source titles and URLs clearly at the bottom.
+
+Retrieved Web Search Sources:
+${sourcesContext}
+
+Strict Guidelines:
+- Base your entire answer on the provided search results.
+- Cite your sources in the text using [1], [2], etc.`;
+        } else {
+          systemInstruction += `\n\n[Research Mode Enabled]\nYou have access to live web search results below to answer the student's question. Please read the search results carefully and provide an accurate, high-quality, cited answer. Cite the search results using inline citation tags like [1], [2], etc., corresponding to the [Source N] indicators in the sources context.\n\nRetrieved Web Search Sources:\n${sourcesContext}\n\nStrict Guidelines:\n- Only use the search results if they are relevant to the user's question.\n- Cite your sources in the text using [1], [2], etc.`;
+        }
+      } else if (isLiveQuery) {
+        researchWarning = "Live information was unavailable. Falling back to pre-trained knowledge.";
+        systemInstruction += `\n\n[Live Search Failed]
+Live web search was unavailable. Clearly state at the beginning of your response that live information was unavailable, then gracefully fall back to general pre-trained knowledge to answer the student's question.`;
       }
 
       // Call our robust AI response engine (which prefers OpenRouter with standard SDK fallback)
