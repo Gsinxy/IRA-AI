@@ -23,6 +23,60 @@ import {
   Paperclip
 } from 'lucide-react';
 import { Message, Chat } from '../types';
+import AiVisualization from './AiVisualization';
+
+interface ExtractedVisualization {
+  type: 'chart' | 'mermaid';
+  rawCode: string;
+  parsedData?: any;
+}
+
+function extractVisualizations(content: string): { cleanContent: string; visual: ExtractedVisualization | null } {
+  if (!content) return { cleanContent: '', visual: null };
+
+  console.log("[Frontend Vis Engine] Processing potential visualization payload. Total content length:", content.length);
+
+  // 1. Try to find json_visualization block
+  const jsonRegex = /```json_visualization\s*([\s\S]*?)```/i;
+  const jsonMatch = content.match(jsonRegex);
+  if (jsonMatch) {
+    try {
+      const rawCode = jsonMatch[1].trim();
+      const parsedData = JSON.parse(rawCode);
+      const cleanContent = content.replace(jsonRegex, '').trim();
+      console.log("[Frontend Vis Engine] Successfully extracted and parsed json_visualization payload! Title:", parsedData.title, "Type:", parsedData.type);
+      return {
+        cleanContent,
+        visual: {
+          type: 'chart',
+          rawCode,
+          parsedData
+        }
+      };
+    } catch (e) {
+      console.error("[Frontend Vis Engine] ERROR parsing json_visualization payload block as JSON:", e);
+    }
+  }
+
+  // 2. Try to find mermaid block
+  const mermaidRegex = /```mermaid\s*([\s\S]*?)```/i;
+  const mermaidMatch = content.match(mermaidRegex);
+  if (mermaidMatch) {
+    const rawCode = mermaidMatch[1].trim();
+    const cleanContent = content.replace(mermaidRegex, '').trim();
+    console.log("[Frontend Vis Engine] Successfully extracted Mermaid concept diagram payload! Code snippet:", rawCode.substring(0, 100));
+    return {
+      cleanContent,
+      visual: {
+        type: 'mermaid',
+        rawCode
+      }
+    };
+  }
+
+  console.log("[Frontend Vis Engine] No visualization payload blocks (json_visualization or mermaid) found in message content.");
+  return { cleanContent: content, visual: null };
+}
 
 interface ChatAreaProps {
   chat: Chat | null;
@@ -659,7 +713,26 @@ export default function ChatArea({
                   } backdrop-blur-xs`}>
                     {isAi ? (
                       <>
-                        <MarkdownRenderer text={msg.content} darkMode={darkMode} />
+                        {(() => {
+                          const { cleanContent, visual } = extractVisualizations(msg.content);
+                          if (visual) {
+                            console.log(`[Frontend Vis Engine] Rendering visual element in message. ID: ${msg.id || "unknown"}, Type: ${visual.type}`);
+                          }
+                          return (
+                            <>
+                              {visual && (
+                                <AiVisualization
+                                  id={msg.id || `vis-${idx}`}
+                                  type={visual.type}
+                                  rawCode={visual.rawCode}
+                                  parsedData={visual.parsedData}
+                                  darkMode={darkMode}
+                                />
+                              )}
+                              <MarkdownRenderer text={cleanContent} darkMode={darkMode} />
+                            </>
+                          );
+                        })()}
                         
                         {msg.sources && msg.sources.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-dashed border-neutral-200 dark:border-neutral-800">

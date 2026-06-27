@@ -140,6 +140,15 @@ async function generateAIResponse(
   const lastUserMsg = [...history].reverse().find(msg => msg.role === 'user');
   const promptSnippet = lastUserMsg ? lastUserMsg.content.substring(0, 150) : "N/A";
 
+  // LOGS FOR THE VISUALIZATION PROTOCOL
+  const hasVisProtocol = instruction.includes("AI-POWERED VISUALIZATION PROTOCOL");
+  console.log(`[AI Request Log] ==========================================`);
+  console.log(`[AI Request Log] User: ${userEmail} | ChatID: ${userChatId}`);
+  console.log(`[AI Request Log] Query snippet: "${promptSnippet}"`);
+  console.log(`[AI Request Log] System instruction length: ${instruction.length} chars`);
+  console.log(`[AI Request Log] Visualization Protocol Present: ${hasVisProtocol}`);
+  console.log(`[AI Request Log] ==========================================`);
+
   const attempts: { model: string; success: boolean; error?: string }[] = [];
   let responseText = "";
   let finalModelUsed = "";
@@ -1007,6 +1016,241 @@ async function startServer() {
     return [];
   }
 
+  /**
+   * Helper to identify if a response has negative disclaimers about graphics/charts.
+   */
+  function containsNegativeDisclaimer(text: string): boolean {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    const disclaimers = [
+      "cannot generate",
+      "cannot draw",
+      "cannot display",
+      "unable to generate",
+      "unable to draw",
+      "unable to display",
+      "as an ai language model",
+      "as an ai text-based",
+      "do not have the capability",
+      "don't have the capability",
+      "not capable of generating",
+      "cannot create charts",
+      "cannot create diagrams",
+      "as an ai, i can't",
+      "as an ai, i cannot"
+    ];
+    return disclaimers.some(phrase => lower.includes(phrase));
+  }
+
+  /**
+   * AI-powered visualization detection layer.
+   */
+  async function detectVisualizationRequired(
+    query: string,
+    history: { role: string; content: string }[]
+  ): Promise<{ needed: boolean; type: 'chart' | 'mermaid' | null }> {
+    if (!query) return { needed: false, type: null };
+    const lower = query.toLowerCase();
+
+    // First do a fast keyword match for explicit user requests to make it extremely responsive
+    const explicitVisualKeywords = [
+      "draw", "show", "generate", "create", "visualize", "plot", "graph", "chart", 
+      "pie chart", "bar chart", "line chart", "flowchart", "mindmap", "diagram", "comparison table", "table of",
+      "growth trend", "gdp of", "statistics", "comparison", "compare", "workflow", "process of", "architecture of",
+      "sequence diagram", "pipeline", "mind map"
+    ];
+    const hasExplicitRequest = explicitVisualKeywords.some(kw => lower.includes(kw));
+
+    try {
+      console.log(`[Vis Detection] Analyzing user query: "${query.substring(0, 100)}..."`);
+      
+      const recentHistoryContext = history.slice(-3).map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.substring(0, 150)}`).join("\n");
+      
+      const detectionPrompt = `You are an expert educational visual classification engine.
+Analyze the student's query and the chat context to decide if the query would significantly benefit from a visual representation.
+
+Student Query: "${query}"
+Recent Chat Context:
+${recentHistoryContext}
+
+We support two visual formats:
+1. "chart": For quantitative data, numerical statistics, trend lines, distributions, comparative tables, or matrix tables (Line charts, Bar charts, Pie charts, Comparison matrices).
+2. "mermaid": For conceptual flows, system processes, state steps, mind maps, sequence of actions, or workflow diagrams.
+
+Determine:
+1. Is a visualization highly beneficial or requested for this academic question? (needed: true or false)
+2. If YES, classify the visualization type ("chart" or "mermaid"). If NO, set type to null.
+
+You MUST respond with a valid raw JSON object matching this schema, without any markdown formatting wrappers or explanation:
+{
+  "needed": boolean,
+  "type": "chart" | "mermaid" | null
+}`;
+
+      console.log(`[Vis Detection] Querying Gemini model gemini-3.5-flash for classification...`);
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: [{ role: 'user', parts: [{ text: detectionPrompt }] }],
+        config: {
+          temperature: 0.0,
+        }
+      });
+
+      const responseText = response.text?.trim() || "";
+      console.log(`[Vis Detection] Raw model response: "${responseText}"`);
+      
+      let cleanText = responseText;
+      if (cleanText.startsWith("```")) {
+        cleanText = cleanText.replace(/```json|```/g, "").trim();
+      }
+
+      const result = JSON.parse(cleanText);
+      console.log(`[Vis Detection] Classification successful. Needed: ${result.needed}, Type: ${result.type}`);
+      return {
+        needed: !!result.needed,
+        type: result.type || null
+      };
+    } catch (err: any) {
+      console.error(`[Vis Detection] LLM classification error:`, err.message);
+      // fallback
+      if (hasExplicitRequest) {
+        let type: 'chart' | 'mermaid' = 'mermaid';
+        if (lower.includes("chart") || lower.includes("pie") || lower.includes("plot") || lower.includes("table") || lower.includes("compare") || lower.includes("gdp") || lower.includes("statistics") || lower.includes("trend")) {
+          type = 'chart';
+        }
+        console.log(`[Vis Detection] Falling back to keyword-based detection. Needed: true, Type: ${type}`);
+        return { needed: true, type };
+      }
+      return { needed: false, type: null };
+    }
+  }
+
+  /**
+   * Dedicated visualization generation layer (strictly produces JSON for Recharts or Mermaid syntax).
+   */
+  async function generateDedicatedVisualization(
+    type: 'chart' | 'mermaid',
+    query: string,
+    history: { role: string; content: string }[]
+  ): Promise<string> {
+    const recentHistoryText = history.slice(-4).map(m => `${m.role === 'user' ? 'Student' : 'Tutor'}: ${m.content.substring(0, 300)}`).join("\n\n");
+    let prompt = "";
+
+    if (type === 'chart') {
+      prompt = `You are a professional academic data visualizer.
+Generate a beautiful, quantitative data model representing the trends, comparisons, or data points from the student's question.
+
+Student Query: "${query}"
+Context:
+${recentHistoryText}
+
+You MUST output EXACTLY a valid JSON object matching the following structure (and nothing else! No markdown formatting, no text before or after the JSON):
+
+{
+  "type": "line" | "bar" | "pie" | "comparison",
+  "title": "A descriptive academic title for the chart/matrix",
+  "xAxisKey": "The object key holding the name/category labels",
+  "yAxisKeys": ["The object key(s) holding the numerical data values"],
+  "data": [
+    { "CategoryKey": "Category Label Name", "ValueKey": 100 }
+  ],
+  "columns": ["CategoryKey", "ValueKey"],
+  "headers": ["Category Header Label", "Value Header Label"],
+  "source": "Scholarly, historical, or institutional source citation (e.g., 'World Bank GDP Database', 'NASA GISS', 'US BEA (2025)')"
+}
+
+Critical Instructions for Pie Charts:
+- If type is "pie", DO NOT name all of your keys "value" or repeat labels.
+- Set "xAxisKey" to the unique key representing category names (e.g. "sector", "category", or "name").
+- In each object inside the "data" array, map your xAxisKey to the specific category name (e.g., "Services", "Industry", "Agriculture") and map your yAxisKey to its respective percentage or value (e.g., 54, 21, 25).
+- Ensure the slice labels and legend are derived from the actual category names in the dataset, not repeated placeholders.
+
+Guidelines:
+- "line": for trends, growth over time, progressions.
+- "bar": for categorical comparisons, distributions.
+- "pie": for parts-of-a-whole, percentages, budget/resource shares.
+- "comparison": for general structured comparison tables or grids.
+- Return ONLY raw JSON, with double-quoted keys and strings. No trailing commas, no comments. Starting with { and ending with }.`;
+    } else {
+      prompt = `You are a professional system diagram architect.
+Generate a beautiful, valid, and clean Mermaid.js diagram representing the process flow, conceptual architecture, mind map, or sequence steps for the student's question.
+
+Student Query: "${query}"
+Context:
+${recentHistoryText}
+
+Supported Layouts:
+- Flowcharts: graph TD or graph LR
+- Sequence Diagrams: sequenceDiagram
+- State Diagrams: stateDiagram-v2
+- Mindmaps: mindmap (Indent using space levels for nested child elements)
+
+Guidelines:
+- Ensure 100% syntactically valid Mermaid code. Do not use special characters or HTML in node text.
+- Do not add markdown wrappers. Output ONLY the raw Mermaid diagram definition. Start directly with the declaration (e.g. 'graph TD', 'sequenceDiagram', or 'mindmap'). No conversational text before or after.`;
+    }
+
+    console.log(`[Vis Generation] ==========================================`);
+    console.log(`[Vis Generation] TYPE: ${type}`);
+    console.log(`[Vis Generation] COMPLETE PROMPT:\n${prompt}`);
+    console.log(`[Vis Generation] ==========================================`);
+
+    let responseText = "";
+    try {
+      // Always query Gemini 3.5 Flash for rapid, robust, zero-cost visual schema outputs
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          temperature: 0.1,
+        }
+      });
+
+      responseText = response.text?.trim() || "";
+      console.log(`[Vis Generation] RAW RESPONSE RECEIVED:\n${responseText}`);
+      console.log(`[Vis Generation] ==========================================`);
+
+    } catch (err: any) {
+      console.error(`[Vis Generation] Failed to generate visual via Gemini API:`, err.message);
+      throw err;
+    }
+
+    // Process and validate response
+    let cleanCode = responseText;
+    if (cleanCode.startsWith("```")) {
+      // Strip any accidental markdown formatting (e.g. ```json or ```mermaid)
+      const lines = cleanCode.split("\n");
+      const codeLines = lines.filter(line => !line.trim().startsWith("```"));
+      cleanCode = codeLines.join("\n").trim();
+    }
+
+    if (type === 'chart') {
+      try {
+        // Validate JSON can be parsed perfectly
+        const parsed = JSON.parse(cleanCode);
+        if (!parsed.type || !parsed.title || !Array.isArray(parsed.data) || !parsed.xAxisKey || !parsed.yAxisKeys || !parsed.source) {
+          throw new Error("Missing required JSON visualization schema fields (type, title, xAxisKey, yAxisKeys, source, or data array)");
+        }
+        console.log(`[Vis Generation] Successfully validated JSON visualization payload!`);
+        return `\`\`\`json_visualization\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+      } catch (parseErr: any) {
+        console.error(`[Vis Generation] JSON Validation failed:`, parseErr.message);
+        throw new Error(`Invalid structured JSON visualization: ${parseErr.message}`);
+      }
+    } else {
+      // Mermaid simple validation
+      const lowerCode = cleanCode.toLowerCase();
+      const validStarts = ["graph ", "flowchart ", "sequencediagram", "statediagram", "gantt", "pie", "gitgraph", "erdiagram", "journey", "mindmap"];
+      const isValidMermaid = validStarts.some(start => lowerCode.startsWith(start));
+      if (!isValidMermaid) {
+        console.warn(`[Vis Generation] Mermaid has suspect syntax start. Healing with 'graph TD' header.`);
+        cleanCode = `graph TD\n${cleanCode}`;
+      }
+      console.log(`[Vis Generation] Successfully validated Mermaid concept diagram payload!`);
+      return `\`\`\`mermaid\n${cleanCode}\n\`\`\``;
+    }
+  }
+
   // 10. Post Message and Call Gemini API
   app.post("/api/chats/:id/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -1102,8 +1346,46 @@ async function startServer() {
         ? `Personal Context: The student is majoring in ${user.major || "unspecified"} at ${user.school || "unspecified"}. Align your explanations with their coursework perspective where suitable.`
         : "";
 
-      // Setup system instructions based on the student's profile context
+      // 1. Run the visualization detection layer
+      let visualizationRequired = false;
+      let visualizationPayload = "";
+      
+      try {
+        const visDetect = await detectVisualizationRequired(searchQuery, history);
+        if (visDetect.needed && visDetect.type) {
+          visualizationRequired = true;
+          console.log(`[ROUTE POST /api/chats/${chatId}/messages] Visualization is REQUIRED! Type: ${visDetect.type}`);
+          
+          // Generate the dedicated visualization content
+          try {
+            visualizationPayload = await generateDedicatedVisualization(visDetect.type, searchQuery, history);
+            console.log(`[ROUTE POST /api/chats/${chatId}/messages] Successfully generated and validated visualization payload.`);
+          } catch (visGenErr: any) {
+            console.error(`[ROUTE POST /api/chats/${chatId}/messages] Dedicated visualization generation failed:`, visGenErr.message);
+          }
+        }
+      } catch (visDetectErr: any) {
+        console.error(`[ROUTE POST /api/chats/${chatId}/messages] Visualization detection error:`, visDetectErr.message);
+      }
+
+      // Setup system instructions based on the student's profile context and whether a visualization has been generated
       let systemInstruction = `You are IRA, an intelligent academic tutor and student study assistant. Provide supportive, clear, structured, and deep explanations. Detail core concepts with helpful analogies, step-by-step calculations/logic, definitions, and code blocks as appropriate. Keep your tone encouraging, elegant, intellectual yet accessible and student-centric. Do not use unformatted clutter. Use Markdown tags cleanly for display. ${personalizedContext}`;
+
+      if (visualizationRequired && visualizationPayload) {
+        systemInstruction += `\n\n=== CRITICAL DIRECTIVE: INTEGRATIVE VISUAL EXPLANATION ===
+A beautiful, responsive visual ${visualizationPayload.includes("json_visualization") ? "chart/table" : "Mermaid concept diagram"} has already been generated by our backend visualization engine and is rendered at the VERY TOP of the chat page.
+The exact visualization block displayed to the student is:
+${visualizationPayload}
+
+STRICT INSTRUCTIONS:
+1. You MUST refer directly to this visualization in your tutoring explanation. Walk the student through the exact categories, steps, labels, trends, or numbers in this visual data.
+2. For example, instead of a generic response, say things like: "As you can see in the chart above, Services contributes the largest share at 54%...", "Looking at the Mermaid diagram above, the process starts at step A...", "In the comparison table...".
+3. YOU MUST NEVER state that you cannot draw, generate, show, or display charts, graphs, or diagrams. Any robotic disclaimers like "As an AI language model..." or "I cannot create charts" is an absolute FAILURE.
+4. If your response contains any disclaimers about graphics, or fails to explain the exact categories or values in the visual, it will be automatically rejected.`;
+      } else {
+        systemInstruction += `\n\n=== AI-POWERED VISUALIZATION ENGINE AVAILABLE ===
+You can create responsive interactive graphs, charts, or Mermaid diagrams at any time. Simply output a \`\`\`json_visualization ... \`\`\` block or a \`\`\`mermaid ... \`\`\` block at the very start of your response. NEVER state that you cannot create visuals or charts.`;
+      }
 
       if (sources && sources.length > 0) {
         const sourcesContext = sources.map((src, i) => `[Source ${i+1}] Title: ${src.title}\nURL: ${src.url}\nContent: ${src.content}`).join("\n\n");
@@ -1127,13 +1409,65 @@ Strict Guidelines:
 Live web search was unavailable. Clearly state at the beginning of your response that live information was unavailable, then gracefully fall back to general pre-trained knowledge to answer the student's question.`;
       }
 
-      // Call our robust AI response engine (which prefers OpenRouter with standard SDK fallback)
-      console.log(`[ROUTE POST /api/chats/${chatId}/messages] Querying Academic AI with history of ${history.length} messages...`);
-      const responseText = await generateAIResponse(history, systemInstruction, req.userId, chatId);
-      console.log(`[ROUTE POST /api/chats/${chatId}/messages] AI response received. Length: ${responseText?.length || 0} characters.`);
+      // Call our robust AI response engine with automatic self-correcting retry logic for negative disclaimers
+      let responseText = "";
+      let attemptsCount = 0;
+      const maxAttempts = 3;
+      let activeSystemInstruction = systemInstruction;
+
+      while (attemptsCount < maxAttempts) {
+        attemptsCount++;
+        console.log(`[ROUTE POST /api/chats/${chatId}/messages] Querying Academic AI (Attempt ${attemptsCount}/${maxAttempts}) with history of ${history.length} messages...`);
+        responseText = await generateAIResponse(history, activeSystemInstruction, req.userId, chatId);
+
+        // Check if the model responded with any annoying AI disclaimers/limitation excuse phrases
+        if (containsNegativeDisclaimer(responseText)) {
+          console.warn(`[Disclaimer Filter] REJECTED response on attempt ${attemptsCount} because it contains a negative disclaimer or limitation excuse! Response snippet: "${responseText.substring(0, 200)}..."`);
+          
+          // Modify instruction for the next attempt to be EXTREMELY strict!
+          activeSystemInstruction = systemInstruction + `\n\n[CRITICAL REJECTION ALERT]
+Your previous response was REJECTED because you made an excuse like "As an AI..." or "I cannot generate standard charts...".
+This is STRICTLY FORBIDDEN. Do NOT say you cannot draw. Do NOT apologize. Do NOT mention AI limits.
+Provide a direct, brilliant academic explanation of the student's question immediately, as a human tutor would.`;
+        } else {
+          console.log(`[Disclaimer Filter] Response passed verification! No robotic disclaimers found.`);
+          break;
+        }
+      }
+
+      // Bulletproof cleanup: strip any leftover disclaimers or "As an AI..." sentences from responseText
+      let cleanedFinalResponse = responseText;
+      if (containsNegativeDisclaimer(cleanedFinalResponse)) {
+        const clichés = [
+          /as an ai language model,? [^.!?]*[.!?]/gi,
+          /as an ai text-based[^.!?]*[.!?]/gi,
+          /as an ai,? i (cannot|can't) [^.!?]*[.!?]/gi,
+          /i do not have the capability [^.!?]*[.!?]/gi,
+          /i don't have the capability [^.!?]*[.!?]/gi,
+          /i am unable to (generate|draw|create) [^.!?]*[.!?]/gi,
+          /i cannot (generate|draw|create|display) [^.!?]*[.!?]/gi,
+          /apologies, but as an ai[^.!?]*[.!?]/gi,
+          /sorry, but as an ai[^.!?]*[.!?]/gi,
+          /please note that i cannot[^.!?]*[.!?]/gi
+        ];
+        for (const regex of clichés) {
+          cleanedFinalResponse = cleanedFinalResponse.replace(regex, "");
+        }
+        cleanedFinalResponse = cleanedFinalResponse.trim();
+        if (!cleanedFinalResponse) {
+          cleanedFinalResponse = "Certainly! Let's explore the data and insights depicted in the visualization above.";
+        }
+      }
+
+      // Prepend the visualization payload if generated so that the frontend renders it above the explanation text
+      if (visualizationPayload) {
+        cleanedFinalResponse = `${visualizationPayload}\n\n${cleanedFinalResponse}`;
+      }
+
+      console.log(`[ROUTE POST /api/chats/${chatId}/messages] AI response finalized. Length: ${cleanedFinalResponse?.length || 0} characters.`);
       
       // Save AI Response locally
-      const savedAiMsg = DB.addMessage(chatId, 'model', responseText, sources, researchWarning);
+      const savedAiMsg = DB.addMessage(chatId, 'model', cleanedFinalResponse, sources, researchWarning);
       console.log(`[ROUTE POST /api/chats/${chatId}/messages] Saved AI message locally ID: ${savedAiMsg.id}`);
 
       // Sync AI message to Firestore
