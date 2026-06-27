@@ -20,10 +20,14 @@ import {
   Brain,
   Target,
   ChevronDown,
-  Paperclip
+  Paperclip,
+  Image,
+  Camera,
+  Trash2
 } from 'lucide-react';
 import { Message, Chat } from '../types';
 import AiVisualization from './AiVisualization';
+import UniversalOutputEngine from './EducationalContentEngine';
 
 interface ExtractedVisualization {
   type: 'chart' | 'mermaid';
@@ -82,7 +86,7 @@ interface ChatAreaProps {
   chat: Chat | null;
   messages: Message[];
   loading: boolean;
-  onSendMessage: (text: string, researchMode?: boolean) => void;
+  onSendMessage: (text: string, researchMode?: boolean, fileData?: { name: string, text: string, type: string }) => void;
   onRegenerate: (researchMode?: boolean) => void;
   user: any;
   darkMode: boolean;
@@ -377,6 +381,165 @@ export default function ChatArea({
   const [mockAttachedFile, setMockAttachedFile] = useState<string | null>(null);
   const [researchEnabled, setResearchEnabled] = useState(false);
 
+  interface UploadedFile {
+    name: string;
+    size: number;
+    type: string;
+    category: 'image' | 'code_screenshot' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'other';
+    dataUrl?: string;
+    extractedText?: string;
+    isExtracting?: boolean;
+    error?: string;
+  }
+
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    let category: 'image' | 'code_screenshot' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'other' = 'other';
+
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension)) {
+      category = 'image';
+    } else if (extension === 'pdf') {
+      category = 'pdf';
+    } else if (['docx', 'doc'].includes(extension)) {
+      category = 'docx';
+    } else if (['pptx', 'ppt'].includes(extension)) {
+      category = 'pptx';
+    } else if (['xlsx', 'xls', 'csv'].includes(extension)) {
+      category = 'xlsx';
+    }
+
+    setUploadedFile({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      category,
+      isExtracting: true
+    });
+    setMockAttachedFile(file.name);
+
+    let dataUrl: string | undefined = undefined;
+    const isImageOrScreenshot = category === 'image' || (category as string) === 'code_screenshot';
+    if (isImageOrScreenshot) {
+      try {
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      } catch (err) {
+        console.error("FileReader failed:", err);
+      }
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (chat?.id) {
+        formData.append("chatId", chat.id);
+      }
+
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem("ira_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers,
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Unable to extract readable text from this file.");
+      }
+
+      const data = await res.json();
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        category,
+        dataUrl,
+        extractedText: data.extractedText,
+        isExtracting: false
+      });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadedFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        category,
+        dataUrl,
+        isExtracting: false,
+        error: err.message || "Unable to extract readable text from this file."
+      });
+    }
+  };
+
+  const handleExecuteAction = (actionLabel: string) => {
+    if (!uploadedFile) return;
+
+    let systemContext = "";
+    if (uploadedFile.category === 'image') {
+      systemContext = `[Attached Image: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else if (uploadedFile.category === 'code_screenshot') {
+      systemContext = `[Attached Code Screenshot: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else if (uploadedFile.category === 'pdf') {
+      systemContext = `[Attached PDF Document: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else if (uploadedFile.category === 'docx') {
+      systemContext = `[Attached Word Document: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else if (uploadedFile.category === 'pptx') {
+      systemContext = `[Attached PowerPoint Presentation: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else if (uploadedFile.category === 'xlsx') {
+      systemContext = `[Attached Spreadsheet: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    } else {
+      systemContext = `[Attached Resource: ${uploadedFile.name}] [Action: ${actionLabel}]`;
+    }
+
+    const actionPrompts: Record<string, string> = {
+      "Explain this image": "Please explain this image, highlighting the core scientific or academic concepts shown.",
+      "Identify and label parts": "Please identify and label all visible parts, structures, or components in this image and explain their functions.",
+      "OCR text": "Please extract all text, captions, or written details from this image.",
+      "Summarize": "Please summarize the core ideas and key takeaways represented in this image.",
+      "Generate MCQs": "Please generate 3 multiple-choice questions based on the concepts illustrated in this image, complete with correct answers and explanations.",
+      "Create flashcards": "Please extract the key terms and definitions from this image to create study flashcards.",
+
+      "OCR code": "Please transcribe the code from this screenshot into clear copyable text.",
+      "Debug": "Please analyze this code screenshot, identify any potential bugs, syntax issues, or errors, explain the bugs, and provide the corrected code.",
+      "Explain": "Please explain the structure, logic, and complexity of the code shown in this screenshot.",
+      "Optimize": "Please optimize the code shown in this screenshot for better performance, memory footprint, or readability, and explain your changes.",
+
+      "Summarize PDF": "Please generate a comprehensive, chapter-by-chapter summary of this PDF document.",
+      "Explain chapter": "Please explain the key chapter, central thesis, and main arguments in this PDF document.",
+      "Generate notes": "Please compile highly organized, beautifully formatted academic study notes from this PDF.",
+      "Generate quiz": "Please devise a 5-question multi-difficulty academic test with detailed answer explanations based on this PDF.",
+      "Extract formulas": "Please extract all mathematical formulas, scientific equations, or key algorithms from this PDF, with explanations of their variables.",
+
+      "Summarize Document": "Please summarize this academic document and list the key concepts and action items.",
+      "Extract Study Guide": "Please formulate an exhaustive summary study guide from this file's presentation slides or text.",
+
+      "Explain table": "Please explain the tabular data, schema, and layout of this spreadsheet.",
+      "Create chart": "Please analyze this table's structure and outline the perfect dataset to create a chart or graph.",
+      "Analyze trends": "Please analyze key trends, patterns, data clusters, and statistics within this spreadsheet's rows and columns."
+    };
+
+    const actionPrompt = actionPrompts[actionLabel] || actionPrompts[`${actionLabel} PDF`] || actionPrompts[`${actionLabel} Document`] || `Perform ${actionLabel} on the attached resource.`;
+    
+    const finalQuery = `${systemContext} ${actionPrompt}`;
+    onSendMessage(finalQuery, researchEnabled);
+    
+    setUploadedFile(null);
+    setMockAttachedFile(null);
+  };
+
   const friendlyName = getFriendlyProfileName(user);
 
   useEffect(() => {
@@ -392,13 +555,26 @@ export default function ChatArea({
     if (currentMode !== 'Study') {
       finalQuery = `[Academic Mode: ${currentMode}] ${finalQuery}`;
     }
+
+    let fileData: { name: string, text: string, type: string } | undefined = undefined;
+    if (uploadedFile && uploadedFile.extractedText) {
+      fileData = {
+        name: uploadedFile.name,
+        text: uploadedFile.extractedText,
+        type: uploadedFile.type
+      };
+    }
+
     // Prefix attachment if present
-    if (mockAttachedFile) {
+    if (uploadedFile) {
+      finalQuery = `[Attached Resource: ${uploadedFile.name}] ${finalQuery}`;
+    } else if (mockAttachedFile) {
       finalQuery = `[Attached Resource: ${mockAttachedFile}] ${finalQuery}`;
     }
 
-    onSendMessage(finalQuery, researchEnabled);
+    onSendMessage(finalQuery, researchEnabled, fileData);
     setInputText('');
+    setUploadedFile(null);
     setMockAttachedFile(null);
   };
 
@@ -489,18 +665,234 @@ export default function ChatArea({
                   ? 'bg-[#1c1b18]/80 border-neutral-800/80 focus-within:border-neutral-700/80 focus-within:ring-white/[0.03]'
                   : 'bg-white/90 border-neutral-200/60 focus-within:border-neutral-350 focus-within:ring-black/[0.02]'
               } backdrop-blur-md`}>
-                {/* File attachment preview inside the input box */}
-                {mockAttachedFile && (
-                  <div className="flex items-center gap-2 mb-2.5 p-1.5 px-3.5 border rounded-full text-xs w-fit bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    <span className="font-medium truncate max-w-[200px]">{mockAttachedFile}</span>
-                    <button
-                      type="button"
-                      onClick={() => setMockAttachedFile(null)}
-                      className="ml-2 hover:text-red-500 font-bold"
-                    >
-                      ×
-                    </button>
+                {/* Academic Upload Hub - Persistent, contextual, and conversational */}
+                {uploadedFile && (
+                  <div className={`mb-4 p-4 border rounded-2xl flex flex-col gap-3 transition-all duration-300 ${
+                    darkMode 
+                      ? 'bg-[#141413] border-neutral-800/80 text-[#e6e4db]' 
+                      : 'bg-neutral-50/80 border-neutral-200 text-neutral-800'
+                  } shadow-xs`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* File Type Icon */}
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          darkMode ? 'bg-neutral-900 text-amber-400' : 'bg-white text-amber-600 shadow-3xs'
+                        }`}>
+                          {uploadedFile.category === 'image' && <Image className="w-5 h-5" />}
+                          {uploadedFile.category === 'code_screenshot' && <Code className="w-5 h-5" />}
+                          {uploadedFile.category === 'pdf' && <FileText className="w-5 h-5 text-red-500" />}
+                          {uploadedFile.category === 'docx' && <FileText className="w-5 h-5 text-blue-500" />}
+                          {uploadedFile.category === 'pptx' && <FileText className="w-5 h-5 text-orange-500" />}
+                          {uploadedFile.category === 'xlsx' && <FileText className="w-5 h-5 text-emerald-500" />}
+                          {uploadedFile.category === 'other' && <Paperclip className="w-5 h-5" />}
+                        </div>
+                        
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold truncate max-w-[150px] sm:max-w-[300px]">
+                              {uploadedFile.name}
+                            </span>
+                            <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-full border ${
+                              darkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-500/5 border-amber-500/15 text-amber-700'
+                            }`}>
+                              {uploadedFile.category === 'image' ? 'Image' :
+                               uploadedFile.category === 'code_screenshot' ? 'Code Screen' :
+                               uploadedFile.category === 'pdf' ? 'PDF' :
+                               uploadedFile.category === 'docx' ? 'Word Doc' :
+                               uploadedFile.category === 'pptx' ? 'PowerPoint' :
+                               uploadedFile.category === 'xlsx' ? 'Spreadsheet' : 'Attachment'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-neutral-400 font-light block mt-0.5">
+                            {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB • Academic Resource
+                          </span>
+                          {uploadedFile.isExtracting && (
+                            <div className="flex items-center gap-2 mt-1.5 text-[11px] text-amber-500 animate-pulse font-mono font-medium">
+                              <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                              <span>EXTRACTING INTELLIGENCE...</span>
+                            </div>
+                          )}
+                          {uploadedFile.error && (
+                            <div className="text-[11px] text-red-500 mt-1.5 font-mono">
+                              ⚠️ {uploadedFile.error}
+                            </div>
+                          )}
+                          {uploadedFile.extractedText && (
+                            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-500 dark:text-emerald-400 font-mono font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                              <span>EXTRACTED {uploadedFile.extractedText.length} CHARACTERS</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setMockAttachedFile(null);
+                        }}
+                        className={`p-1.5 border rounded-full hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all ${
+                          darkMode ? 'border-neutral-800' : 'border-neutral-200'
+                        }`}
+                        title="Discard File"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Image preview thumbnail & toggle */}
+                    {uploadedFile.dataUrl && (
+                      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mt-1 pb-2 border-b border-dashed border-neutral-200 dark:border-neutral-800">
+                        <img 
+                          src={uploadedFile.dataUrl} 
+                          alt="Preview" 
+                          className="w-14 h-14 object-cover rounded-lg border border-neutral-200 dark:border-neutral-800"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400">Classify Image Context:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setUploadedFile({ ...uploadedFile, category: 'image' })}
+                              className={`text-xs px-2.5 py-1 border rounded-full transition-all cursor-pointer ${
+                                uploadedFile.category === 'image'
+                                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold'
+                                  : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                              }`}
+                            >
+                              🖼️ Anatomy / Biology Diagram
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUploadedFile({ ...uploadedFile, category: 'code_screenshot' })}
+                              className={`text-xs px-2.5 py-1 border rounded-full transition-all cursor-pointer ${
+                                uploadedFile.category === 'code_screenshot'
+                                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold'
+                                  : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                              }`}
+                            >
+                              💻 Code Screenshot
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dynamic Contextual Action Buttons */}
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <div className="text-[10px] uppercase font-mono tracking-wider text-neutral-400">Contextual Academic Actions:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {uploadedFile.category === 'image' && [
+                          "Explain this image", "Identify and label parts", "OCR text", "Summarize", "Generate MCQs", "Create flashcards"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act)}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3 text-amber-500" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+
+                        {uploadedFile.category === 'code_screenshot' && [
+                          "OCR code", "Debug", "Explain", "Optimize"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act)}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <Code className="w-3 h-3 text-amber-500" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+
+                        {uploadedFile.category === 'pdf' && [
+                          "Summarize PDF", "Explain chapter", "Generate notes", "Generate quiz", "Extract formulas"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act.replace(" PDF", ""))}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <FileText className="w-3 h-3 text-red-500" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+
+                        {['docx', 'pptx'].includes(uploadedFile.category) && [
+                          "Summarize Document", "Extract Study Guide", "Generate Quiz"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act)}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <BookOpen className="w-3 h-3 text-blue-500" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+
+                        {uploadedFile.category === 'xlsx' && [
+                          "Explain table", "Create chart", "Analyze trends"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act)}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <ClipboardList className="w-3 h-3 text-emerald-500" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+
+                        {uploadedFile.category === 'other' && [
+                          "Summarize", "Explain"
+                        ].map(act => (
+                          <button
+                            key={act}
+                            type="button"
+                            onClick={() => handleExecuteAction(act)}
+                            className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                              darkMode 
+                                ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                                : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                            }`}
+                          >
+                            <Paperclip className="w-3 h-3" />
+                            <span>{act}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -614,23 +1006,47 @@ export default function ChatArea({
                     {/* Attach File action button */}
                     <input
                       type="file"
-                      id="ira-file-attach"
+                      id="ira-file-attach-landing"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          setMockAttachedFile(file.name);
+                          handleFileUpload(file);
                         }
                       }}
                     />
                     <label
-                      htmlFor="ira-file-attach"
+                      htmlFor="ira-file-attach-landing"
                       className={`p-2 border rounded-full transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center ${
                         darkMode ? 'border-neutral-800 bg-[#141413] text-[#e6e4db]' : 'border-neutral-200 bg-[#faf9f5] text-[#141413] shadow-xs'
                       }`}
                       title="Attach File"
                     >
                       <Paperclip className="w-4 h-4 text-neutral-400 hover:text-inherit" />
+                    </label>
+
+                    {/* Camera Capture button */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      id="ira-camera-attach-landing"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileUpload(file);
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="ira-camera-attach-landing"
+                      className={`p-2 border rounded-full transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center ${
+                        darkMode ? 'border-neutral-800 bg-[#141413] text-[#e6e4db]' : 'border-neutral-200 bg-[#faf9f5] text-[#141413] shadow-xs'
+                      }`}
+                      title="Camera Capture (Mobile)"
+                    >
+                      <Camera className="w-4 h-4 text-neutral-400 hover:text-inherit" />
                     </label>
                   </div>
 
@@ -713,26 +1129,12 @@ export default function ChatArea({
                   } backdrop-blur-xs`}>
                     {isAi ? (
                       <>
-                        {(() => {
-                          const { cleanContent, visual } = extractVisualizations(msg.content);
-                          if (visual) {
-                            console.log(`[Frontend Vis Engine] Rendering visual element in message. ID: ${msg.id || "unknown"}, Type: ${visual.type}`);
-                          }
-                          return (
-                            <>
-                              {visual && (
-                                <AiVisualization
-                                  id={msg.id || `vis-${idx}`}
-                                  type={visual.type}
-                                  rawCode={visual.rawCode}
-                                  parsedData={visual.parsedData}
-                                  darkMode={darkMode}
-                                />
-                              )}
-                              <MarkdownRenderer text={cleanContent} darkMode={darkMode} />
-                            </>
-                          );
-                        })()}
+                        <UniversalOutputEngine
+                          messageId={msg.id || `msg-${idx}`}
+                          content={msg.content}
+                          darkMode={darkMode}
+                          onRenderMarkdown={(text) => <MarkdownRenderer text={text} darkMode={darkMode} />}
+                        />
                         
                         {msg.sources && msg.sources.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-dashed border-neutral-200 dark:border-neutral-800">
@@ -854,11 +1256,242 @@ export default function ChatArea({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className={`w-full border rounded-xl p-3 transition-all duration-300 focus-within:ring-1 ${
+             <form onSubmit={handleSubmit} className={`w-full border rounded-xl p-3 transition-all duration-300 focus-within:ring-1 ${
               darkMode
                 ? 'bg-[#141413] border-[#31302b] focus-within:border-[#faf9f5] focus-within:ring-[#faf9f5]/20'
                 : 'bg-white border-[#dedcd1] focus-within:border-[#141413] focus-within:ring-[#141413]/10'
             }`}>
+              {/* Academic Upload Hub - Persistent, contextual, and conversational */}
+              {uploadedFile && (
+                <div className={`mb-4 p-4 border rounded-2xl flex flex-col gap-3 transition-all duration-300 ${
+                  darkMode 
+                    ? 'bg-[#141413] border-neutral-800/80 text-[#e6e4db]' 
+                    : 'bg-neutral-50/80 border-neutral-200 text-neutral-800'
+                } shadow-xs`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* File Type Icon */}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        darkMode ? 'bg-neutral-900 text-amber-400' : 'bg-white text-amber-600 shadow-3xs'
+                      }`}>
+                        {uploadedFile.category === 'image' && <Image className="w-5 h-5" />}
+                        {uploadedFile.category === 'code_screenshot' && <Code className="w-5 h-5" />}
+                        {uploadedFile.category === 'pdf' && <FileText className="w-5 h-5 text-red-500" />}
+                        {uploadedFile.category === 'docx' && <FileText className="w-5 h-5 text-blue-500" />}
+                        {uploadedFile.category === 'pptx' && <FileText className="w-5 h-5 text-orange-500" />}
+                        {uploadedFile.category === 'xlsx' && <FileText className="w-5 h-5 text-emerald-500" />}
+                        {uploadedFile.category === 'other' && <Paperclip className="w-5 h-5" />}
+                      </div>
+                      
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold truncate max-w-[150px] sm:max-w-[300px]">
+                            {uploadedFile.name}
+                          </span>
+                          <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-full border ${
+                            darkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-500/5 border-amber-500/15 text-amber-700'
+                          }`}>
+                            {uploadedFile.category === 'image' ? 'Image' :
+                             uploadedFile.category === 'code_screenshot' ? 'Code Screen' :
+                             uploadedFile.category === 'pdf' ? 'PDF' :
+                             uploadedFile.category === 'docx' ? 'Word Doc' :
+                             uploadedFile.category === 'pptx' ? 'PowerPoint' :
+                             uploadedFile.category === 'xlsx' ? 'Spreadsheet' : 'Attachment'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-neutral-400 font-light block mt-0.5">
+                          {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB • Academic Resource
+                        </span>
+                        {uploadedFile.isExtracting && (
+                          <div className="flex items-center gap-2 mt-1.5 text-[11px] text-amber-500 animate-pulse font-mono font-medium">
+                            <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                            <span>EXTRACTING INTELLIGENCE...</span>
+                          </div>
+                        )}
+                        {uploadedFile.error && (
+                          <div className="text-[11px] text-red-500 mt-1.5 font-mono">
+                            ⚠️ {uploadedFile.error}
+                          </div>
+                        )}
+                        {uploadedFile.extractedText && (
+                          <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-500 dark:text-emerald-400 font-mono font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span>EXTRACTED {uploadedFile.extractedText.length} CHARACTERS</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setMockAttachedFile(null);
+                      }}
+                      className={`p-1.5 border rounded-full hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all ${
+                        darkMode ? 'border-neutral-800' : 'border-neutral-200'
+                      }`}
+                      title="Discard File"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Image preview thumbnail & toggle */}
+                  {uploadedFile.dataUrl && (
+                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mt-1 pb-2 border-b border-dashed border-neutral-200 dark:border-neutral-800">
+                      <img 
+                        src={uploadedFile.dataUrl} 
+                        alt="Preview" 
+                        className="w-14 h-14 object-cover rounded-lg border border-neutral-200 dark:border-neutral-800"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400">Classify Image Context:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setUploadedFile({ ...uploadedFile, category: 'image' })}
+                            className={`text-xs px-2.5 py-1 border rounded-full transition-all cursor-pointer ${
+                              uploadedFile.category === 'image'
+                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold'
+                                : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                            }`}
+                          >
+                            🖼️ Anatomy / Biology Diagram
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setUploadedFile({ ...uploadedFile, category: 'code_screenshot' })}
+                            className={`text-xs px-2.5 py-1 border rounded-full transition-all cursor-pointer ${
+                              uploadedFile.category === 'code_screenshot'
+                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold'
+                                : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                            }`}
+                          >
+                            💻 Code Screenshot
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic Contextual Action Buttons */}
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-neutral-400">Contextual Academic Actions:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {uploadedFile.category === 'image' && [
+                        "Explain this image", "Identify and label parts", "OCR text", "Summarize", "Generate MCQs", "Create flashcards"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act)}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-500" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+
+                      {uploadedFile.category === 'code_screenshot' && [
+                        "OCR code", "Debug", "Explain", "Optimize"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act)}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <Code className="w-3 h-3 text-amber-500" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+
+                      {uploadedFile.category === 'pdf' && [
+                        "Summarize PDF", "Explain chapter", "Generate notes", "Generate quiz", "Extract formulas"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act.replace(" PDF", ""))}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <FileText className="w-3 h-3 text-red-500" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+
+                      {['docx', 'pptx'].includes(uploadedFile.category) && [
+                        "Summarize Document", "Extract Study Guide", "Generate Quiz"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act)}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <BookOpen className="w-3 h-3 text-blue-500" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+
+                      {uploadedFile.category === 'xlsx' && [
+                        "Explain table", "Create chart", "Analyze trends"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act)}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <ClipboardList className="w-3 h-3 text-emerald-500" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+
+                      {uploadedFile.category === 'other' && [
+                        "Summarize", "Explain"
+                      ].map(act => (
+                        <button
+                          key={act}
+                          type="button"
+                          onClick={() => handleExecuteAction(act)}
+                          className={`text-xs px-3 py-1.5 border rounded-full font-light transition-all cursor-pointer hover:scale-[1.02] flex items-center gap-1.5 ${
+                            darkMode 
+                              ? 'border-[#31302b] bg-[#1c1b18] hover:bg-neutral-800 text-neutral-300 hover:text-white' 
+                              : 'border-[#dedcd1] bg-white hover:bg-neutral-50 text-neutral-600 hover:text-black shadow-3xs'
+                          }`}
+                        >
+                          <Paperclip className="w-3 h-3" />
+                          <span>{act}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <textarea
                 required
                 rows={2}
@@ -971,7 +1604,7 @@ export default function ChatArea({
                     <span className={`w-1.5 h-1.5 rounded-full ${researchEnabled ? 'bg-blue-500 animate-pulse' : 'bg-neutral-400 dark:bg-neutral-600'}`} />
                   </button>
 
-                  {/* Voice Button */}
+                   {/* Voice Button */}
                   {user?.email === 'naiknirmal654@gmail.com' && (
                     <button
                       type="button"
@@ -984,6 +1617,52 @@ export default function ChatArea({
                       <Mic className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                     </button>
                   )}
+
+                  {/* Attach File action button */}
+                  <input
+                    type="file"
+                    id="ira-file-attach-active"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleFileUpload(file);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="ira-file-attach-active"
+                    className={`p-1 border rounded-full transition-all hover:opacity-80 active:scale-95 cursor-pointer flex items-center justify-center ${
+                      darkMode ? 'border-[#31302b] bg-[#141413] text-[#e6e4db]' : 'border-[#dedcd1] bg-[#faf9f5] text-[#141413]'
+                    }`}
+                    title="Attach File"
+                  >
+                    <Paperclip className="w-3.5 h-3.5 text-neutral-400 hover:text-[#141413] dark:hover:text-[#e6e4db]" />
+                  </label>
+
+                  {/* Camera Capture button */}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    id="ira-camera-attach-active"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleFileUpload(file);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="ira-camera-attach-active"
+                    className={`p-1 border rounded-full transition-all hover:opacity-80 active:scale-95 cursor-pointer flex items-center justify-center ${
+                      darkMode ? 'border-[#31302b] bg-[#141413] text-[#e6e4db]' : 'border-[#dedcd1] bg-[#faf9f5] text-[#141413]'
+                    }`}
+                    title="Camera Capture (Mobile)"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-neutral-400 hover:text-[#141413] dark:hover:text-[#e6e4db]" />
+                  </label>
                 </div>
 
                 <div className="flex items-center gap-2">

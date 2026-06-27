@@ -18,11 +18,150 @@
     {
       "id": "chat_7ooeidhzo",
       "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
-      "title": "New Concept Explanation",
+      "title": "Hypersonic missile explained",
       "createdAt": "2026-06-23T16:34:35.134Z"
     }
   ],
-  "messages": [],
+  "messages": [
+    {
+      "id": "msg_z5ujp43o3",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "what is hypersonic missile",
+      "createdAt": "2026-06-23T16:43:16.477Z"
+    },
+    {
+      "id": "msg_7u99fxj81",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "It's wonderful to delve into the fascinating world of advanced technology! Let's explore the concept of a **hypersonic missile**.\n\n### What is a Hypersonic Missile?\n\nAt its core, a **hypersonic missile** is a type of missile that travels at **hypersonic speeds**. But what does \"hypersonic\" truly mean in this context?\n\n*   **Hypersonic Speed Defined:** In aerodynamics, hypersonic speed is typically defined as anything above **Mach 5** (five times the speed of sound). To put this into perspective:\n    *   The speed of sound (Mach 1) at sea level is approximately 767 miles per hour (1,235 kilometers per hour).\n    *   Therefore, a hypersonic missile travels at speeds exceeding **3,835 miles per hour (6,174 kilometers per hour)**! This is incredibly fast, allowing it to traverse vast distances in very short periods.\n\n### Key Characteristics and Why They Matter\n\nHypersonic missiles are not just about speed; their unique combination of speed, maneuverability, and flight trajectory makes them exceptionally challenging to detect, track, and intercept.\n\n1.  **Extreme Speed (Mach 5+):**\n    *   **Analogy:** Imagine trying to catch a bullet fired from a rifle – it's incredibly difficult because of its speed. Now imagine a bullet traveling five times faster than that!\n    *   **Impact:** This extreme velocity significantly reduces the reaction time for enemy defense systems. Traditional missile defense systems are designed to intercept ballistic missiles, which follow predictable, high-altitude parabolic trajectories. Hypersonic missiles, however, challenge these systems due to their speed and unpredictable flight paths.\n\n2.  **Maneuverability:**\n    *   Unlike traditional ballistic missiles that follow a largely predictable arc once their boost phase is complete, many hypersonic missiles are designed to perform complex maneuvers during their atmospheric flight.\n    *   **Impact:** This maneuverability makes their trajectory highly unpredictable, further complicating interception efforts. A defending system not only has to deal with immense speed but also with a target that can change its direction rapidly.\n\n3.  **Atmospheric Flight:**\n    *   Many hypersonic missiles, particularly Hypersonic Glide Vehicles (HGVs), spend a significant portion of their flight within the Earth's atmosphere (though at very high altitudes).\n    *   **Contrast with Ballistic Missiles:** Ballistic missiles typically exit the atmosphere during their mid-course phase, re-entering only for the terminal attack.\n    *   **Impact:** Flying within the atmosphere at such high speeds generates immense heat and creates a plasma sheath around the missile, which can interfere with communications and make detection by conventional radar systems more difficult.\n\n### Types of Hypersonic Missiles\n\nThere are two primary categories of hypersonic missiles being developed:\n\n1.  **Hypersonic Glide Vehicles (HGVs):**\n    *   **How they work:** These vehicles are launched into space by a conventional rocket booster, similar to a ballistic missile. However, instead of continuing on a ballistic trajectory, the HGV detaches from the booster and then glides back into the upper atmosphere.\n    *   **Flight Profile:** Within the atmosphere, they use aerodynamic lift to \"skip\" and maneuver, maintaining hypersonic speeds and unpredictable flight paths towards their target.\n    *   **Analogy:** Think of a stone skipping across water, but on a much grander scale and at immense speeds, with the ability to change direction mid-skip.\n\n2.  **Hypersonic Cruise Missiles (HCMs):**\n    *   **How they work:** These missiles are powered by advanced air-breathing engines, such as **scramjets (supersonic combustion ramjets)**, throughout their flight.\n    *   **Flight Profile:** They remain within the atmosphere for their entire journey, flying at relatively lower altitudes than HGVs but still at hypersonic speeds.\n    *   **Engine Innovation:** Scramjets are crucial here. Unlike traditional jet engines that compress air using rotating components, scramjets compress air through the vehicle's forward motion at supersonic speeds. Fuel is then injected and burned in this supersonic airflow, producing thrust. This is an incredibly complex engineering feat.\n\n### Why are Hypersonic Missiles a Game Changer?\n\nThe development of hypersonic missiles represents a significant shift in military capabilities and strategic thinking because they:\n\n*   **Challenge Existing Defenses:** They render many current missile defense systems less effective due to their speed and maneuverability.\n*   **Reduce Warning Time:** The incredibly short flight times drastically reduce the window for detection, decision-making, and response.\n*   **Increase Strike Precision:** Their ability to maneuver allows for more precise targeting.\n*   **Potential for Conventional or Nuclear Payloads:** They can be equipped with either conventional or nuclear warheads, adding to their strategic importance.\n\n### Conclusion\n\nHypersonic missiles are at the forefront of military technology, pushing the boundaries of speed, aerodynamics, and propulsion. Their ability to deliver payloads quickly and with high unpredictability makes them a significant factor in global defense strategies and a subject of intense research and development worldwide. Understanding them requires appreciating the intricate interplay of extreme physics, advanced engineering, and strategic implications.",
+      "createdAt": "2026-06-23T16:43:25.374Z"
+    },
+    {
+      "id": "msg_0exghuwk2",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "[Academic Mode: Research] i have internship in 4th sem so give some research of uco bank",
+      "createdAt": "2026-06-25T09:51:26.775Z"
+    },
+    {
+      "id": "msg_6tq22xwcn",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "Certainly! Let me provide you with a research-based overview of the internship opportunities at UCO Bank, based on the information I could gather from the search results.\n\n[1] According to the LinkedIn post by Satyaswarup Mishra, he completed an internship at UCO Bank as an HR intern and received a completion certificate. This suggests that UCO Bank does offer internship opportunities, particularly in the human resources domain. [1]\n\n[2] The Scribd document on \"Credit Appraisal Analysis at UCO Bank\" indicates that UCO Bank also offers internships related to banking operations, such as credit appraisal and analysis. This internship project report provides insight into the kind of practical training and projects interns may be involved in at the bank. [2]\n\n[3] The UCO Internship Manual from the University of Central Oklahoma further reinforces that internships can focus on critical research, special projects, or year-round assistance, depending on the organization's needs. This suggests that UCO Bank may offer a variety of internship opportunities beyond just HR and banking operations. [3]\n\n[4] The Reddit post on the \"UCO Bank Apprenticeship\" discusses the potential benefits of pursuing an internship or apprenticeship at the bank, particularly for MBA students in finance. This indicates that UCO Bank may have specific programs or opportunities tailored for business and finance students. [4]\n\n[5] The Instagram post from UCO Bank highlights the bank's focus on empowering entrepreneurs, which could potentially translate to internship experiences related to small business banking, financial advisory, or even fintech initiatives. [5]\n\nIn summary, the research suggests that UCO Bank offers a range of internship opportunities, primarily in areas such as human resources, banking operations (e.g., credit appraisal), and potentially finance, business, and entrepreneurship-related domains. The internships may involve hands-on projects, research, and exposure to various aspects of the banking industry. As an intern, you could gain valuable practical experience and insights into the operations and strategic priorities of UCO Bank.\n\nI hope this research-based overview is helpful for your internship preparation. Let me know if you have any other questions!",
+      "createdAt": "2026-06-25T09:51:37.264Z",
+      "sources": [
+        {
+          "content": "I have completed my internship at UCO Bank as an HR intern and received my completion certificate! 🎓✨ This internship has been an amazing",
+          "title": "Satyaswarup Mishra's Post - LinkedIn",
+          "url": "https://www.linkedin.com/posts/satyamishra1_internship-ucobank-humanresources-activity-7206198689755795456-y7rY"
+        },
+        {
+          "url": "https://www.scribd.com/document/646087620/Internship-in-banking-SIP-report",
+          "content": "This document summarizes a student's summer training project report on credit appraisal at UCO Bank. It includes an introduction covering the banking",
+          "title": "Credit Appraisal Analysis at UCO Bank | PDF - Scribd"
+        },
+        {
+          "url": "https://www.uco.edu/students/cdc/files/uco-internship-manual.pdf",
+          "content": "Interns can focus on critical research. research or special projects? Interns can help year-round or for a certain time period.",
+          "title": "[PDF] internship manual | uco"
+        },
+        {
+          "url": "https://www.reddit.com/r/bankingexam/comments/1pme1cp/uco_bank_apprenticeship_gamechanger_for_mba",
+          "title": "UCO Bank Apprenticeship: Game-Changer for MBA Finance or Time ...",
+          "content": "Just got selected for a UCO Bank apprenticeship and wondering if it's worth pursuing—I'm in my 4th semester of an online MBA in Finance,"
+        },
+        {
+          "url": "https://www.instagram.com/reel/DWDju2lkiGQ?hl=en",
+          "content": "like risk factors, how to manage money, and what factors in the market affect these things. This is a new business for me, it's been three years",
+          "title": "At UCO Bank, we believe in empowering entrepreneurs ... - Instagram"
+        }
+      ]
+    },
+    {
+      "id": "msg_pf4h3t1fc",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "draw some graphs of classical ecomics",
+      "createdAt": "2026-06-25T09:54:04.680Z"
+    },
+    {
+      "id": "msg_g0lzw893g",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "Certainly! Let's explore some of the key graphs in classical economics. I'll provide clear explanations and step-by-step visualizations to help you understand these important economic concepts.\n\n1. **Supply and Demand Curve**:\n   - The supply and demand curve is a fundamental tool in classical economics that demonstrates the relationship between the price of a good or service and the quantity supplied and demanded.\n   - **Diagram:**\n     ```\n     Price\n       ^\n       |         Supply\n       |         --------\n       |                 \\\n       |                  \\\n       |                   \\\n       |                    \\\n       |                     \\\n       |                      \\\n       |                       \\\n       |                        \\\n       |                         \\\n       |                          \\\n       |                           \\\n       |                            \\\n       |                             Demand\n       |                             ------\n       |_________________________________\n                 Quantity\n     ```\n   - The downward-sloping demand curve represents the law of demand, where the quantity demanded increases as the price decreases.\n   - The upward-sloping supply curve represents the law of supply, where the quantity supplied increases as the price increases.\n   - The equilibrium point is where the supply and demand curves intersect, indicating the market-clearing price and quantity.\n\n2. **Production Possibility Frontier (PPF)**:\n   - The production possibility frontier (PPF) is a graph that shows the maximum possible combinations of two goods that an economy can produce, given its available resources and technology.\n   - **Diagram:**\n     ```\n     Good Y\n       ^\n       |                 PPF\n       |                 ----\n       |                /\n       |               /\n       |              /\n       |             /\n       |            /\n       |           /\n       |          /\n       |         /\n       |        /\n       |       /\n       |      /\n       |     /\n       |    /\n       |   /\n       |  /\n       | /\n       |/\n       +---------------------------\n         Good X\n     ```\n   - The PPF is typically concave (bowed inward) due to the law of diminishing returns, where the opportunity cost of producing one good increases as more of it is produced.\n   - Points on the PPF represent efficient production, while points inside the PPF represent inefficient production.\n   - The slope of the PPF at any point represents the opportunity cost of producing one good in terms of the other.\n\n3. **Comparative Advantage**:\n   - Comparative advantage is a concept in classical economics that explains why countries (or individuals) should specialize in the production of goods and services in which they have a relative advantage.\n   - **Diagram:**\n     ```\n     Good Y\n       ^\n       |                 Country A\n       |                 ----------\n       |                /\n       |               /\n       |              /\n       |             /\n       |            /\n       |           /\n       |          /\n       |         /\n       |        /\n       |       /\n       |      /\n       |     /\n       |    /\n       |   /\n       |  /\n       | /\n       |/\n       +---------------------------\n         Good X\n     ```\n   - In the diagram, the PPF of Country A is steeper than the PPF of Country B, indicating that Country A has a comparative advantage in producing Good X, while Country B has a comparative advantage in producing Good Y.\n   - By specializing in the production of the good in which they have a comparative advantage and trading, both countries can consume more of both goods, leading to a more efficient allocation of resources.\n\nThese are just a few examples of the classical economics graphs you may encounter in your research and studies. Let me know if you need any clarification or have additional questions!",
+      "createdAt": "2026-06-25T09:54:12.844Z"
+    },
+    {
+      "id": "msg_bjxmlh9se",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "current gdp of india",
+      "createdAt": "2026-06-27T05:43:17.182Z"
+    },
+    {
+      "id": "msg_spyvmwlpf",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "Based on the information provided in the search results, here is the current GDP of India:\n\nAccording to the World Bank data [1], India's GDP (current US$) in the most recent year available is:\n\n- 2024: $4,039,841 million (provisional estimate)\n\nThe Worldometer website [2] provides a more detailed breakdown of India's GDP forecasts:\n\n- 2026 (IMF forecast): $4,153,191 million\n- 2025: $3,916,312 million\n- 2024: $3,760,814 million\n- 2023: $3,500,906 million\n- 2022: $3,249,939 million\n- 2021: $3,084,517 million\n\nAdditionally, the Press Note from the Government of India's Ministry of Statistics and Programme Implementation [3] confirms the Provisional Estimates of Annual Gross Domestic Product for the Financial Year 2025-26, though it does not provide the exact GDP figure for the current year.\n\nIn summary, based on the most recent data available:\n\n- India's current GDP (2024 estimate) is $4,039,841 million.\n- The GDP is expected to grow to $4,153,191 million by 2026, according to IMF forecasts.\n\nI've cited the relevant sources [1], [2], and [3] for your reference. Let me know if you need any clarification or have additional questions!\n\nSources:\n[1] World Bank Data: https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IN\n[2] Worldometer - India GDP: https://www.worldometers.info/gdp/india-gdp/\n[3] Press Note on Provisional Estimates of Annual GDP for 2025-26: https://static.pib.gov.in/WriteReadData/specificdocs/documents/2026/jun/doc202665884801.pdf",
+      "createdAt": "2026-06-27T05:43:24.643Z",
+      "sources": [
+        {
+          "url": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IN",
+          "title": "GDP (current US$) - India - World Bank Data",
+          "content": "GDP (current US$) - India | Data\n\n# GDP (current US$) - India\n\nCountry official statistics, National Statistical Organizations and/or Central Banks; National Accounts data files, Organisation for Economic Co-operation and Development ( OECD ); Staff estimates, World Bank ( WB )\n\nLabel\n\n1960196519701975198019851990199520002005201020152020 0.00.51.01.52.02.53.03.54.0India\n\n## Selected Countries and Economies\n\nCountry\n\nMost Recent Year\n\nMost Recent Value(Millions)\n\n2024\n\n3,909,891.53\n\n## All Countries and Economies\n\nCountry\n\nMost Recent Year\n\nMost Recent Value(Millions)\n\n2023\n\n17,152.23\n\n2024\n\n27,046.43\n\n2024\n\n269,322.28\n\n2022\n\n871.00\n\n2024\n\n4,039.84\n\n2024\n\n100,998.92\n\n2024\n\n2,207.62\n\n2024\n\n638,365.46\n\n2024\n\n25,955.28\n\n2024\n\n4,265.65\n\n2024\n\n1,757,022.45\n\n2024\n\n534,790.72\n\n2024\n\n74,315.88\n\n2024\n\n15,832.80\n\n2024\n\n47,109.73\n\n2024\n\n450,119.43\n\n2024\n\n7,498.05\n\n2024\n\n75,961.87\n\n2024\n\n671,370.08\n\n2024\n\n3,203.63\n\n2024\n\n21,482.64\n\n2024\n\n9,233.60\n\n2023\n\n3,012.90\n\n2024\n\n54,881.33\n\n2024\n\n29,613.57\n\n2"
+        },
+        {
+          "title": "India GDP (2026) - Worldometer",
+          "content": "India GDP (2026) - Worldometer\n\n# India GDP (2026)\n\n### IMF (2026)\n\nNominal (current) Gross Domestic Product (GDP) of India is $4.15 trillion ($4,153,191,000,000) as of 2026, according to the International Monetary Fund (IMF). The GDP growth rate in 2026 is 6.5%, according to the International Monetary Fund (IMF). GDP per Capita in India (with a population of 1,476,625,576 people) is $2,813 in 2026, an increase of $137 from $2,675 in 2025; this represents a change of 5.1% in GDP per capita.\n\n### GDP Change (%)\n\n## Gross Domestic Product (GDP) of India\n\nIMF WB\n\nNominal GDP PPP GDP\n\n| Year | GDP Nominal (Current USD) | GDP Growth | GDP per capita | Pop. Change |\n| --- | --- | --- | --- | --- |\n| 2026 | $4,153,191,000,000 | 6.5% | $2,813 | 0.87% |\n| 2025 | $3,916,312,000,000 | 7.6% | $2,675 | 0.89% |\n| 2024 | $3,760,814,000,000 | 7.1% | $2,592 | 0.89% |\n| 2023 | $3,500,906,000,000 | 7.2% | $2,434 | 0.89% |\n| 2022 | $3,249,939,000,000 | 7.6% | $2,280 | 0.79% |\n| 2021 | $3,084,517,000,000 |",
+          "url": "https://www.worldometers.info/gdp/india-gdp/"
+        },
+        {
+          "content": "## PRESS NOTE ON\n\n## PROVISIONAL ESTIMATES OF ANNUAL GROSS DOMESTIC PRODUCT FOR 2025-26\n\n## QUARTERLY ESTIMATES OF GROSS DOMESTIC PRODUCT FOR THE FOURTH QUARTER (JANUARY MARCH) OF 2025-26\n\n### NATIONAL ACCOUNTS DIVISION NATIONAL STATISTICS OFFICE MINISTRY OF STATISTICS & PROGRAMME IMPLEMENTATION GOVERNMENT OF INDIA\n\n### GOVERNMENT OF INDIA MINISTRY OF STATISTICS AND PROGRAMME IMPLEMENTATION\n\n### PRESS NOTE\n\n#### PROVISIONAL ESTIMATES OF ANNUAL GROSS DOMESTIC PRODUCT FOR 2025-26\n\n### AND\n\n#### QUARTERLY ESTIMATES OF GROSS DOMESTIC PRODUCT FOR THE FOURTH QUARTER (JANUARY-MARCH) OF 2025-26\n\n#### Dated 15 th Jyestha, 1948 Saka 5 th June, 2026\n\nThe Ministry of Statistics and Programme Implementation (MoSPI) is releasing in this Press Note, the Provisional Estimates (PE) of Annual Gross Domestic Product (GDP) for the Financial Year (2025-26) and Quarterly Estimates of GDP for the Fourth Quarter (Q4, January-March) of FY 2025-26 along with its Expenditure components both at Constant (2022-23)",
+          "title": "PRESS NOTE ON",
+          "url": "https://static.pib.gov.in/WriteReadData/specificdocs/documents/2026/jun/doc202665884801.pdf"
+        },
+        {
+          "title": "India - IMF DataMapper",
+          "content": "IMFDataMapper\n\n# { geoitem.label }",
+          "url": "https://www.imf.org/external/datamapper/profile/IND"
+        },
+        {
+          "title": "India - World Bank Data",
+          "content": "India | Data\n\n# India\n\nJump to\n\n- Projects & Operations\n- Finances\n- Surveys\n- Human Capital Index\n- Global Economic Prospects - Forecasts\n- Climate\n\n- Overview\n- By Theme\n- By SDG Goal\n\nTopic\n\n- Social\n- Economic\n- Environment\n- Institutions\n\n## Social\n\nIndicator\n\nMost recent value\n\nTrend\n\nLife expectancy at birth, total (years)\n\nLife expectancy at birth, total (years)\n\nMost recent value\n\n(2024)\n\n72\n\n(2024)\n\nTrend\n\n20002025 6274India\n\nPoverty headcount ratio at $3.00 a day (2021 PPP) (% of population)\n\nPoverty headcount ratio at $3.00 a day (2021 PPP) (% of population)\n\nMost recent value\n\n(2022)\n\n5.3\n\n(2022)\n\nTrend\n\n20002025 550India\n\nPopulation, total\n\nPopulation, total\n\nMost recent value\n\n(2024 billion)\n\n1.45\n\n(2024 billion)\n\nTrend\n\n20002025 1.051.48India\n\nPopulation growth (annual %)\n\nPopulation growth (annual %)\n\nMost recent value\n\n(2024)\n\n0.9\n\n(2024)\n\nTrend\n\n20002025 02India\n\nNet migration\n\nNet migration\n\nMost recent value\n\n(2025)\n\n-495,753\n\n(2025)\n\nTrend\n\n20002025 -1430000159000",
+          "url": "https://data.worldbank.org/country/india"
+        }
+      ]
+    },
+    {
+      "id": "msg_6n7vaeqjl",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "give photo of  human anatomy",
+      "createdAt": "2026-06-27T17:22:29.649Z"
+    },
+    {
+      "id": "msg_87vhsv2vd",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "```educational_image\n{\n  \"title\": \"Comprehensive Human Anatomy Overview\",\n  \"prompt\": \"A highly detailed, professional, and aesthetically pleasing anatomical diagram of the full human body, showing major organ systems (skeletal, muscular, circulatory, nervous, digestive, respiratory, urinary, endocrine, integumentary, reproductive). The style should be reminiscent of classic medical textbook illustrations, clean lines, accurate labeling, and a neutral background. Include both anterior and posterior views if possible, or a single view that clearly shows internal and superficial structures. The image should be suitable for educational purposes, highlighting key organs and structures clearly. Avoid any graphic or overly clinical presentation. Focus on clarity and comprehensive representation of the major anatomical systems.\",\n  \"fallbackMessage\": \"An illustrative scientific graphic of the human anatomy with interactive labels has been configured for rendering. Click to start the layer generation.\",\n  \"interactiveLabels\": [\n    { \"x\": 50, \"y\": 10, \"label\": \"Brain\", \"description\": \"The control center of the nervous system, responsible for thought, emotion, memory, and coordinating body functions.\" },\n    { \"x\": 50, \"y\": 25, \"label\": \"Lungs\", \"description\": \"Paired organs responsible for respiration, facilitating the exchange of oxygen and carbon dioxide between the blood and the air.\" },\n    { \"x\": 50, \"y\": 35, \"label\": \"Heart\", \"description\": \"A muscular organ that pumps blood throughout the body, providing oxygen and nutrients to tissues and removing waste.\" },\n    { \"x\": 60, \"y\": 45, \"label\": \"Liver\", \"description\": \"A vital organ with numerous functions, including detoxification, protein synthesis, and the production of biochemicals necessary for digestion.\" },\n    { \"x\": 50, \"y\": 55, \"label\": \"Stomach\", \"description\": \"A muscular organ of the digestive system that receives food from the esophagus, secretes acid and enzymes to digest food.\" },\n    { \"x\": 50, \"y\": 65, \"label\": \"Intestines\", \"description\": \"Comprising the small and large intestines, these organs are responsible for further digestion and absorption of nutrients (small) and water (large).\" },\n    { \"x\": 50, \"y\": 80, \"label\": \"Skeletal System\", \"description\": \"Provides structural support, protects internal organs, allows movement, and produces blood cells.\" },\n    { \"x\": 30, \"y\": 50, \"label\": \"Muscular System\", \"description\": \"Responsible for movement, posture, and heat production, composed of skeletal, smooth, and cardiac muscles.\" },\n    { \"x\": 70, \"y\": 50, \"label\": \"Kidneys\", \"description\": \"Paired organs that filter blood, remove waste products, and excrete them as urine, maintaining fluid and electrolyte balance.\" },\n    { \"x\": 50, \"y\": 90, \"label\": \"Nervous System\", \"description\": \"The body's communication network, consisting of the brain, spinal cord, and nerves, responsible for transmitting signals.\" }\n  ]\n}\n```\nHere is a comprehensive illustration of human anatomy! This interactive image provides a detailed overview of the major organ systems and key structures within the human body. You can click on the highlighted labels to learn more about each part's function and location.\n\nUnderstanding human anatomy is like understanding the blueprint of an incredibly complex and efficient machine. Each system and organ plays a vital role in keeping us alive and functioning!",
+      "createdAt": "2026-06-27T17:22:36.693Z"
+    },
+    {
+      "id": "msg_9kzb9jfv7",
+      "chatId": "chat_7ooeidhzo",
+      "role": "user",
+      "content": "give photo of cell digrams",
+      "createdAt": "2026-06-27T17:23:23.277Z"
+    },
+    {
+      "id": "msg_tq8nvgm1q",
+      "chatId": "chat_7ooeidhzo",
+      "role": "model",
+      "content": "```educational_image\n{\n  \"title\": \"Generalized Animal and Plant Cell Diagrams\",\n  \"prompt\": \"A professional and clear scientific illustration showing two distinct cells side-by-side: one generalized animal cell and one generalized plant cell. Each cell should be meticulously drawn with its key organelles clearly visible and distinct. For the animal cell, include the nucleus, mitochondria, endoplasmic reticulum (rough and smooth), Golgi apparatus, ribosomes, lysosomes, cytoplasm, and cell membrane. For the plant cell, include all animal cell organelles plus a prominent cell wall, large central vacuole, and chloroplasts. Use clear, contrasting colors for different organelles. The style should be typical of a biology textbook diagram, with a clean white background and space for labels. Ensure high fidelity and accuracy for educational purposes.\",\n  \"fallbackMessage\": \"An illustrative scientific graphic of generalized animal and plant cell diagrams with interactive labels has been configured for rendering. Click to start the layer generation.\",\n  \"interactiveLabels\": [\n    { \"x\": 25, \"y\": 50, \"label\": \"Animal Cell\", \"description\": \"A eukaryotic cell that does not have a cell wall or chloroplasts. It is typically round or irregular in shape.\" },\n    { \"x\": 75, \"y\": 50, \"label\": \"Plant Cell\", \"description\": \"A eukaryotic cell characterized by the presence of a cell wall, chloroplasts, and a large central vacuole. It is typically rectangular or fixed in shape.\" },\n    { \"x\": 25, \"y\": 20, \"label\": \"Cell Membrane\", \"description\": \"A thin, semi-permeable membrane that surrounds the cytoplasm of a cell, regulating the passage of substances in and out.\" },\n    { \"x\": 25, \"y\": 30, \"label\": \"Nucleus\", \"description\": \"The control center of the cell, containing the cell's genetic material (DNA) and regulating cell growth, metabolism, and reproduction.\" },\n    { \"x\": 25, \"y\": 40, \"label\": \"Mitochondrion\", \"description\": \"Often called the 'powerhouse' of the cell, it generates most of the chemical energy needed to power the cell's biochemical reactions through cellular respiration.\" },\n    { \"x\": 25, \"y\": 60, \"label\": \"Endoplasmic Reticulum\", \"description\": \"A network of membranes that processes and transports proteins (rough ER) and synthesizes lipids and detoxifies drugs and poisons (smooth ER).\" },\n    { \"x\": 25, \"y\": 70, \"label\": \"Golgi Apparatus\", \"description\": \"Modifies, sorts, and packages proteins and lipids into vesicles for secretion or delivery to other organelles.\" },\n    { \"x\": 75, \"y\": 15, \"label\": \"Cell Wall\", \"description\": \"A rigid outer layer found only in plant cells (and some other organisms), providing structural support and protection to the cell.\" },\n    { \"x\": 75, \"y\": 25, \"label\": \"Chloroplast\", \"description\": \"Organelles found in plant cells (and other photosynthetic organisms) that conduct photosynthesis, converting light energy into chemical energy.\" },\n    { \"x\": 75, \"y\": 35, \"label\": \"Central Vacuole\", \"description\": \"A large, membrane-bound organelle in plant cells that stores water, nutrients, and waste products, and helps maintain turgor pressure.\" }\n  ]\n}\n```\nHere's an illustrative diagram showcasing the key differences and similarities between a generalized **Animal Cell** and a **Plant Cell**!\n\nCells are the fundamental building blocks of all known living organisms, and understanding their structure is crucial to comprehending biology. This image provides a clear visual representation, allowing you to explore the various organelles and their functions.\n\nYou'll notice that while both are eukaryotic cells (meaning they have a nucleus and other membrane-bound organelles), plant cells have some unique components that reflect their specific functions, like photosynthesis and structural support.\n\nFeel free to click on the interactive labels to learn more about each specific organelle!",
+      "createdAt": "2026-06-27T17:23:29.049Z"
+    }
+  ],
   "sessions": {
     "x0pwcrnlta70q2xm3a2gf": {
       "userId": "vkOIzuPA20cB3LIguaFTfb4BD243"
@@ -42,32 +181,43 @@
     "az5h7vvo692u6727y57xw": {
       "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
       "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
+    },
+    "ovzva2mpiwjh4sn8bd2c35": {
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "supabaseAccessToken": "vkOIzuPA20cB3LIguaFTfb4BD243"
     }
   },
   "apiUsage": {
-    "GET /api/auth/me": 19,
-    "POST /api/auth/login": 9,
-    "GET /api/chats": 16,
-    "GET /api/founder/stats": 20,
-    "GET /api/chats/chat_izzwodbck/messages": 5,
+    "GET /api/auth/me": 26,
+    "POST /api/auth/login": 10,
+    "GET /api/chats": 23,
+    "GET /api/founder/stats": 24,
+    "GET /api/chats/chat_izzwodbck/messages": 12,
     "GET /api/health": 2,
     "POST /api/chats": 2,
     "POST /api/chats/chat_196yh678j/messages": 1,
     "DELETE /api/chats/chat_196yh678j": 1,
     "POST /api/chats/chat_jifbgskho/messages": 1,
-    "DELETE /api/chats/chat_jifbgskho": 1
+    "DELETE /api/chats/chat_jifbgskho": 1,
+    "GET /api/chats/chat_7ooeidhzo/messages": 2,
+    "POST /api/chats/chat_7ooeidhzo/messages": 2,
+    "POST /api/educational-asset": 2,
+    "GET /api/qa/validate": 1
   },
   "openRouterRequests": {
     "attempts": 0,
     "success": 2,
     "failed": 0,
-    "fallbackGemini": 0
+    "fallbackGemini": 2
   },
   "dailyActiveUsers": {
     "2026-06-22": [
       "vkOIzuPA20cB3LIguaFTfb4BD243"
     ],
     "2026-06-24": [
+      "vkOIzuPA20cB3LIguaFTfb4BD243"
+    ],
+    "2026-06-27": [
       "vkOIzuPA20cB3LIguaFTfb4BD243"
     ]
   },
@@ -104,6 +254,50 @@
       ],
       "finalModelUsed": "Claude (anthropic/claude-3-haiku)",
       "responseSnippet": "Newton's First Law, also known as the law of inertia, states that an object at rest will remain at rest, and an object in motion will remain in motion",
+      "status": "Success"
+    },
+    {
+      "id": "log_iu4syeg8t",
+      "timestamp": "2026-06-27T17:22:36.692Z",
+      "chatId": "chat_7ooeidhzo",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "userEmail": "naiknirmal654@gmail.com",
+      "promptSnippet": "give photo of  human anatomy",
+      "attempts": [
+        {
+          "model": "Gemini 2.5 Flash (Native SDK)",
+          "success": false,
+          "error": "{\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}"
+        },
+        {
+          "model": "Gemini 2.5 Flash (OpenRouter)",
+          "success": true
+        }
+      ],
+      "finalModelUsed": "Gemini 2.5 Flash (OpenRouter)",
+      "responseSnippet": "```educational_image\n{\n  \"title\": \"Comprehensive Human Anatomy Overview\",\n  \"prompt\": \"A highly detailed, professional, and aesthetically pleasing ana",
+      "status": "Success"
+    },
+    {
+      "id": "log_sgts5racc",
+      "timestamp": "2026-06-27T17:23:29.048Z",
+      "chatId": "chat_7ooeidhzo",
+      "userId": "vkOIzuPA20cB3LIguaFTfb4BD243",
+      "userEmail": "naiknirmal654@gmail.com",
+      "promptSnippet": "give photo of cell digrams",
+      "attempts": [
+        {
+          "model": "Gemini 2.5 Flash (Native SDK)",
+          "success": false,
+          "error": "{\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}"
+        },
+        {
+          "model": "Gemini 2.5 Flash (OpenRouter)",
+          "success": true
+        }
+      ],
+      "finalModelUsed": "Gemini 2.5 Flash (OpenRouter)",
+      "responseSnippet": "```educational_image\n{\n  \"title\": \"Generalized Animal and Plant Cell Diagrams\",\n  \"prompt\": \"A professional and clear scientific illustration showing ",
       "status": "Success"
     }
   ]

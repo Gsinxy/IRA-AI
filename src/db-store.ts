@@ -328,8 +328,18 @@ export const DB = {
     return chat;
   },
 
+  updateChatDocument: (chatId: string, text: string, name: string, type: string): Chat | undefined => {
+    const chat = db.chats.find(c => c.id === chatId);
+    if (!chat) return undefined;
+    chat.extractedDocumentText = text;
+    chat.extractedDocumentName = name;
+    chat.extractedDocumentType = type;
+    saveDb();
+    return chat;
+  },
+
   // Messages
-  addMessage: (chatId: string, role: 'user' | 'model', content: string, sources?: any[], researchWarning?: string): Message => {
+  addMessage: (chatId: string, role: 'user' | 'model', content: string, sources?: any[], researchWarning?: string, image?: any): Message => {
     const newMessage: Message = {
       id: 'msg_' + Math.random().toString(36).substr(2, 9),
       chatId,
@@ -337,7 +347,8 @@ export const DB = {
       content,
       createdAt: new Date().toISOString(),
       sources,
-      researchWarning
+      researchWarning,
+      image
     };
     db.messages.push(newMessage);
     saveDb();

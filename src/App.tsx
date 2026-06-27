@@ -214,7 +214,7 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = async (text: string, researchMode?: boolean) => {
+  const handleSendMessage = async (text: string, researchMode?: boolean, fileData?: { name: string, text: string, type: string }) => {
     if (!token || loading) return;
     setLoading(true);
     setRateLimitExceeded(false);
@@ -230,7 +230,12 @@ export default function App() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ title: text.slice(0, 40) || "New Concept Explanation" })
+          body: JSON.stringify({ 
+            title: text.slice(0, 40) || "New Concept Explanation",
+            extractedDocumentText: fileData?.text,
+            extractedDocumentName: fileData?.name,
+            extractedDocumentType: fileData?.type
+          })
         });
         if (res.ok) {
           const { chat } = await res.json();
@@ -258,7 +263,13 @@ export default function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ text, researchMode })
+        body: JSON.stringify({ 
+          text, 
+          researchMode,
+          extractedDocumentText: fileData?.text,
+          extractedDocumentName: fileData?.name,
+          extractedDocumentType: fileData?.type
+        })
       });
 
       if (res.status === 429) {

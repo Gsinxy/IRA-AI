@@ -421,6 +421,7 @@ export async function saveMessageToFirestore(message: {
   timestamp?: string;
   sources?: any[];
   researchWarning?: string;
+  image?: any;
 }) {
   const path = `messages/${message.id}`;
   try {
@@ -438,6 +439,9 @@ export async function saveMessageToFirestore(message: {
     }
     if (message.researchWarning) {
       resolvedMessage.researchWarning = message.researchWarning;
+    }
+    if (message.image) {
+      resolvedMessage.image = message.image;
     }
     await setDoc(doc(db, "messages", message.id), resolvedMessage);
     console.log('[Firestore WRITE SUCCESS] Successfully saved message in cloud:', message.id);

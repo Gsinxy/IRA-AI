@@ -14,6 +14,9 @@ export interface Chat {
   userId: string;
   title: string;
   createdAt: string;
+  extractedDocumentText?: string;
+  extractedDocumentName?: string;
+  extractedDocumentType?: string;
 }
 
 export interface SearchSource {
@@ -30,6 +33,12 @@ export interface Message {
   createdAt: string;
   sources?: SearchSource[];
   researchWarning?: string;
+  image?: {
+    type: string;
+    title: string;
+    imageUrl: string;
+    caption: string;
+  };
 }
 
 export interface AuthResponse {
